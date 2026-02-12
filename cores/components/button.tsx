@@ -9,6 +9,7 @@ export type ButtonProps = {
   size?: string;
   backgroundColor?: string;
   variant?: ButtonVariant;
+  margin?: string;
 };
 
 const AppButton = ({
@@ -18,12 +19,13 @@ const AppButton = ({
   borderRadius = "rounded-10",
   size = "text-base",
   variant = "blue",
+  margin,
 }: ButtonProps) => {
   return (
     <Button
       onClick={onClick}
       disabled={disabled}
-      className={`${borderRadius} font-bold ${size} p-4 ${buttonVariants[variant]}`}
+      className={`${borderRadius} font-[500] ${size} p-4 ${buttonVariants[variant]}`}
     >
       {label}
     </Button>

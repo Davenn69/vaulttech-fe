@@ -12,6 +12,7 @@
     "@fortune-sheet/react": "^1.0.2",
     "@grapecity/spread-sheets": "^18.2.4",
     "@grapecity/spread-sheets-react": "^18.2.4",
+    "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
@@ -27,11 +28,13 @@
     "quill": "^2.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hook-form": "^7.71.1",
     "react-hot-toast": "^2.6.0",
     "react-spreadsheet": "^0.10.1",
     "scheduler": "^0.27.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
+    "zod": "^4.3.6",
     "zustand": "^5.0.11"
   },
   "devDependencies": {

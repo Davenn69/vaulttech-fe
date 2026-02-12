@@ -1,4 +1,4 @@
-import { Gap } from "@/cores/components/gap";
+import { Gap } from "@/lib/cores/components/gap";
 
 export default function AuthLayout({
   children,

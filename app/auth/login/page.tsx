@@ -6,12 +6,12 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import AppButton from "@/cores/components/button";
-import TextField from "@/cores/components/custom_text_field";
-import { Gap } from "@/cores/components/gap";
-import { textTheme } from "@/cores/constants/textTheme";
-import { buttonVariants } from "@/cores/types/buttonTypes";
-import { useAuth } from "./(viewmodel)/auth_viewmodel";
+import AppButton from "@/lib/cores/components/button";
+import TextField from "@/lib/cores/components/custom_text_field";
+import { Gap } from "@/lib/cores/components/gap";
+import { textTheme } from "@/lib/cores/constants/textTheme";
+import { buttonVariants } from "@/lib/cores/types/buttonTypes";
+import { useAuth } from "../../../lib/features/login/(viewmodel)/auth_viewmodel";
 export default function LoginPage() {
   const useLogin = useAuth();
   return (

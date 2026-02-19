@@ -3,6 +3,7 @@ import "./globals.css";
 import { font } from "@/lib/cores/constants/fonts";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Providers } from "@/lib/cores/providers/provider";
+import Toast from "@/lib/cores/components/custom_toast";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="en" className={font.variable}>
       <body className={`font-manrope antialiased bg-black2 text-white1`}>
         <Providers>{children}</Providers>
+        <Toast />
       </body>
     </html>
   );

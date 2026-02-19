@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { LoginCredentials, LoginResponse } from "../types/auth";
+import { LoginCredentials, LoginResponse } from "../types/loginTypes";
 import { api } from "@/lib/cores/base/service";
 import { AxiosError } from "axios";
 import toast from "react-hot-toast";

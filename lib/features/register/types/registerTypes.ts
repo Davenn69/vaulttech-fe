@@ -1,9 +1,10 @@
-export interface LoginCredentials {
+export interface RegisterRequest {
   email: string;
   password: string;
+  username: string;
 }
 
-export interface LoginResponse {
+export interface RegisterResponse {
   session: {
     accessToken: string;
     refreshToken: string;

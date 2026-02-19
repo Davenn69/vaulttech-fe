@@ -1,8 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { ButtonVariant, buttonVariants } from "../types/buttonTypes";
+import { ButtonHTMLAttributes } from "react";
 
 export type ButtonProps = {
   label: string;
+  type?: "button" | "submit" | "reset";
   onClick?: () => void;
   disabled?: boolean;
   borderRadius?: string;
@@ -15,6 +17,7 @@ export type ButtonProps = {
 const AppButton = ({
   label,
   onClick,
+  type = undefined,
   disabled = false,
   borderRadius = "rounded-10",
   size = "text-base",
@@ -25,6 +28,7 @@ const AppButton = ({
     <Button
       onClick={onClick}
       disabled={disabled}
+      type={type}
       className={`${borderRadius} font-[500] ${size} p-4 ${buttonVariants[variant]}`}
     >
       {label}

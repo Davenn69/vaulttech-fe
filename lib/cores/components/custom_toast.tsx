@@ -10,6 +10,12 @@ const Toast = ({ position = "bottom-right" }: ToastProps) => {
       position={position}
       toastOptions={{
         icon: null,
+        success: {
+          style: {
+            background: "#33C481",
+            color: "#eeeeee",
+          },
+        },
         error: {
           style: {
             background: "#ef5350",

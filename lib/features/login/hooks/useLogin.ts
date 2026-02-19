@@ -6,12 +6,12 @@ import { LoginCredentials, LoginResponse } from "../types/loginTypes";
 import { api } from "@/lib/cores/base/service";
 import { AxiosError } from "axios";
 import toast from "react-hot-toast";
-import { ApiResponseError } from "@/lib/cores/types/api_response";
+import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 
 export function useLogin() {
   const router = useRouter();
   return useMutation<
-    LoginResponse,
+    ApiResponse<LoginResponse>,
     AxiosError<ApiResponseError>,
     LoginCredentials
   >({
@@ -22,13 +22,14 @@ export function useLogin() {
         console.log(res.data);
         return res.data;
       }),
-    onSuccess: (response: LoginResponse) => {
+    onSuccess: (response: ApiResponse<LoginResponse>) => {
       console.log(response);
+      document.cookie = `accessToken=${response.data.session.accessToken}`;
       localStorage.setItem("accessToken", response.data.session.accessToken);
       localStorage.setItem("refreshToken", response.data.session.refreshToken);
       toast.success(response.message);
 
-      router.replace("/dashboard");
+      router.replace("/home");
     },
     onError: (error: AxiosError<ApiResponseError>) => {
       console.log(error.response?.data);

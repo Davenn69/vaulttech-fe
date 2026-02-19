@@ -4,10 +4,14 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    name: string;
+  message: string;
+  data: {
+    session: {
+      accessToken: string;
+      refreshToken: string;
+    };
+    user: {
+      id: string;
+    };
   };
 }

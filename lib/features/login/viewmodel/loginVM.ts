@@ -10,7 +10,6 @@ export function useLoginFunction() {
   const login = useLogin();
 
   const onSubmit = (values: LoginCredentials) => {
-    console.log("hello");
     login.mutate(values);
   };
 
@@ -20,20 +19,3 @@ export function useLoginFunction() {
     error: login.error,
   };
 }
-
-export const useAuth = create<AuthStore>((set) => ({
-  form: {
-    user: "",
-    password: "",
-  },
-  setUser: (user) => set((state) => ({ form: { ...state.form, user } })),
-  setPassword: (password) =>
-    set((state) => ({ form: { ...state.form, password } })),
-  resetForm: () =>
-    set({
-      form: {
-        user: "",
-        password: "",
-      },
-    }),
-}));

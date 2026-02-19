@@ -29,7 +29,7 @@ const AppButton = ({
       onClick={onClick}
       disabled={disabled}
       type={type}
-      className={`${borderRadius} font-[500] ${size} p-4 ${buttonVariants[variant]}`}
+      className={`w-full ${borderRadius} font-[500] ${size} p-4 ${buttonVariants[variant]}`}
     >
       {label}
     </Button>

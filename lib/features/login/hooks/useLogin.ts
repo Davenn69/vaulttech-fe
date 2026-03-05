@@ -3,7 +3,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { LoginCredentials, LoginResponse } from "../types/loginTypes";
-import { api } from "@/lib/cores/base/service";
+import { api, nextApi } from "@/lib/cores/base/service";
 import { AxiosError } from "axios";
 import toast from "react-hot-toast";
 import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
@@ -16,7 +16,7 @@ export function useLogin() {
     LoginCredentials
   >({
     mutationFn: (credentials: LoginCredentials) =>
-      api.post("/auth/login", credentials).then((res) => {
+      nextApi.post("/api/auth/login", credentials).then((res) => {
         console.log(res.config.url);
         console.log(res.config.baseURL);
         console.log(res.data);
@@ -24,12 +24,9 @@ export function useLogin() {
       }),
     onSuccess: (response: ApiResponse<LoginResponse>) => {
       console.log(response);
-      document.cookie = `accessToken=${response.data.session.accessToken}`;
-      localStorage.setItem("accessToken", response.data.session.accessToken);
-      localStorage.setItem("refreshToken", response.data.session.refreshToken);
       toast.success(response.message);
 
-      router.replace("/home");
+      router.replace("/home/sada");
     },
     onError: (error: AxiosError<ApiResponseError>) => {
       console.log(error.response?.data);

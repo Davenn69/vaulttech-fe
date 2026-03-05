@@ -1,6 +1,11 @@
 import axios from "axios";
 
-export const api = axios.create({ baseURL: process.env.NEXT_PUBLIC_BASE_URL });
+export const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_BASE_URL,
+  withCredentials: true,
+});
+
+export const nextApi = axios.create();
 
 api.interceptors.request.use((config) => {
   const publicRoutes = ["/auth/login", "/auth/register"];

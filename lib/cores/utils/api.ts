@@ -1,10 +1,20 @@
 import axios, { AxiosError } from "axios";
 import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import toast from "react-hot-toast";
+import { supabase } from "./supabase";
+
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session) return { "Content-Type": "application/json" };
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${session.access_token}`,
+  };
+}
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-
-console.log(API_BASE_URL);
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
@@ -14,14 +24,7 @@ const apiClient = axios.create({
 
 apiClient.interceptors.request.use(
   (config) => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("accessToken");
-
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-
+    console.log(`headers configuration ${config.headers}`);
     return config;
   },
   (error) => Promise.reject(error),
@@ -39,16 +42,25 @@ apiClient.interceptors.response.use(
 );
 
 export const api = {
-  get: <T>(url: string, params?: any) =>
-    apiClient.get<T>(url, { params }).then((res) => res.data),
+  get: async <T>(url: string, params?: any) => {
+    const headers = await getAuthHeaders();
+    console.log(`headers ${JSON.stringify(headers)}`);
+    return apiClient.get<T>(url, { params, headers }).then((res) => res.data);
+  },
+  post: async <T>(url: string, data?: any) => {
+    const headers = await getAuthHeaders();
+    return apiClient.post<T>(url, data, headers).then((res) => res.data);
+  },
 
-  post: <T>(url: string, data?: any) =>
-    apiClient.post<T>(url, data).then((res) => res.data),
+  put: async <T>(url: string, data?: any) => {
+    const headers = await getAuthHeaders();
+    return apiClient.put<T>(url, data, headers).then((res) => res.data);
+  },
 
-  put: <T>(url: string, data?: any) =>
-    apiClient.put<T>(url, data).then((res) => res.data),
-
-  delete: <T>(url: string) => apiClient.delete<T>(url).then((res) => res.data),
+  delete: async <T>(url: string) => {
+    const headers = await getAuthHeaders();
+    return apiClient.delete<T>(url, headers).then((res) => res.data);
+  },
 };
 
 export function errorHandler(error: AxiosError<ApiResponseError>): void {

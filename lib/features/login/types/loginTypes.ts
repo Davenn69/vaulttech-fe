@@ -11,4 +11,5 @@ export interface LoginResponse {
   user: {
     id: string;
   };
+  initialFolder: string;
 }

@@ -34,8 +34,6 @@ export function useLogin() {
         },
       );
 
-      if (!res.ok) throw new Error("Backend login failed");
-
       return res.json();
     },
     onSuccess: (response: ApiResponse<LoginResponse>) => {

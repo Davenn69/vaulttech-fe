@@ -49,17 +49,17 @@ export const api = {
   },
   post: async <T>(url: string, data?: any) => {
     const headers = await getAuthHeaders();
-    return apiClient.post<T>(url, data, headers).then((res) => res.data);
+    return apiClient.post<T>(url, data, { headers }).then((res) => res.data);
   },
 
   put: async <T>(url: string, data?: any) => {
     const headers = await getAuthHeaders();
-    return apiClient.put<T>(url, data, headers).then((res) => res.data);
+    return apiClient.put<T>(url, data, { headers }).then((res) => res.data);
   },
 
   delete: async <T>(url: string) => {
     const headers = await getAuthHeaders();
-    return apiClient.delete<T>(url, headers).then((res) => res.data);
+    return apiClient.delete<T>(url, { headers }).then((res) => res.data);
   },
 };
 
@@ -67,7 +67,8 @@ export function errorHandler(error: AxiosError<ApiResponseError>): void {
   console.log(error.response?.data);
   console.log(`error status ${error.response?.status}`);
   console.log(`error headers ${error.response?.headers}`);
-  toast.error(error.response?.data?.message ?? "");
+  if (error.response?.data.message == null) return;
+  toast.error(error.response?.data?.message);
 }
 
 export function successHandler<T>(response: ApiResponse<T>) {

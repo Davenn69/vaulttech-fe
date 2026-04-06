@@ -1,8 +1,7 @@
 "use client";
 
-import { FolderOpen, Clock, Star, Trash2, Plus, File } from "lucide-react";
+import { FolderOpen, Clock, Star, Trash2, Plus } from "lucide-react";
 import { useState } from "react";
-import { handleUpload } from "../utils/handle_upload";
 
 const navItems = [
   { icon: FolderOpen, label: "My Repository", id: "repository" },
@@ -11,29 +10,48 @@ const navItems = [
   { icon: Trash2, label: "Trash", id: "trash" },
 ];
 
-const buttonItems = [
-  {
-    label: "Upload File",
-    iconRoute: "/assets/icons/Normal_File_Icon.svg",
-    onClick: () => {
-      handleUpload();
-    },
-  },
-  {
-    label: "Word",
-    iconRoute: "/assets/icons/Word_Icon.svg",
-    onClick: () => {},
-  },
-  {
-    label: "Excel",
-    iconRoute: "/assets/icons/Excel_Icon.svg",
-    onClick: () => {},
-  },
-  { label: "Pdf", iconRoute: "/assets/icons/Pdf_Icon.svg", onClick: () => {} },
-];
-
-export default function Sidebar({ activeItem, onNavigate }) {
+export default function Sidebar({
+  activeItem,
+  onNavigate,
+  onUploadFiles,
+}) {
   const [addButtonOpen, setAddButtonOpen] = useState(false);
+
+  const buttonItems = [
+    {
+      label: "Upload File",
+      iconRoute: "/assets/icons/Normal_File_Icon.svg",
+      onClick: () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.multiple = true;
+
+        input.onchange = async (e) => {
+          const selectedFiles = Array.from(e.target.files ?? []);
+          if (!selectedFiles.length) return;
+
+          await onUploadFiles(selectedFiles);
+        };
+
+        input.click();
+      },
+    },
+    {
+      label: "Word",
+      iconRoute: "/assets/icons/Word_Icon.svg",
+      onClick: () => {},
+    },
+    {
+      label: "Excel",
+      iconRoute: "/assets/icons/Excel_Icon.svg",
+      onClick: () => {},
+    },
+    {
+      label: "Pdf",
+      iconRoute: "/assets/icons/Pdf_Icon.svg",
+      onClick: () => {},
+    },
+  ];
 
   return (
     <aside className="w-[200px] shrink-0 flex flex-col h-full px-4 py-6 border-r border-[#222426] bg-[#111213]">

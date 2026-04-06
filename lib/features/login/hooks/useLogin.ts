@@ -29,8 +29,11 @@ export function useLogin() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
           },
+          body: JSON.stringify({
+            email: credentials.email,
+            password: credentials.password,
+          }),
         },
       );
 

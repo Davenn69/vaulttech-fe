@@ -5,6 +5,8 @@ import FolderChip from "./folder_chip";
 import FileCard from "./file_card";
 import { useFileList } from "@/lib/features/home/hooks/useFileList";
 import PageWrapper from "./page_wrapper";
+import { useEffect } from "react";
+import { useUploadRefresh } from "@/lib/features/home/context/upload_refresh_context";
 
 const FOLDERS = [
   { id: 1, name: "Design Assets" },
@@ -15,9 +17,14 @@ const FOLDERS = [
 ];
 
 export default function RepositoryGrid({ id }: { id: string }) {
-  const { files, loading: fileLoading, fetchFiles } = useFileList(id);
+  const { files, loading: fileLoading, fetchFiles } = useFileList();
+  const { refreshTick } = useUploadRefresh();
 
-  console.log(files);
+  useEffect(() => {
+    if (!id) return;
+    fetchFiles(id);
+  }, [fetchFiles, id, refreshTick]);
+
   return (
     <PageWrapper isLoading={fileLoading}>
       <main className="flex-1 overflow-y-auto px-6 pt-6 pb-10 scrollbar-thin scrollbar-thumb-[#2a2c2e] scrollbar-track-transparent">

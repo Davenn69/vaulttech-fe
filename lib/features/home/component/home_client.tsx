@@ -2,23 +2,33 @@
 
 import Sidebar from "@/lib/cores/components/sidebar";
 import Topbar from "@/lib/cores/components/topbar";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FileUploader } from "./file_uploader";
 import { useMultiFileUpload } from "../hooks/useFileUpload";
 import { useParams } from "next/navigation";
+import {
+  UploadRefreshProvider,
+  useUploadRefresh,
+} from "../context/upload_refresh_context";
 
-export default function HomeLayoutClient({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+function HomeLayoutContent({ children }: { children: React.ReactNode }) {
+  const { notifyUploadSuccess } = useUploadRefresh();
   const params = useParams();
   const folderId = Array.isArray(params.id) ? params.id[0] : (params.id ?? "");
 
   const [activeNav, setActiveNav] = useState("repository");
-  const [uploadCount, setUploadCount] = useState("");
   const [showUploadedSection, setShowUploadedSection] = useState(false);
-  const upload = useMultiFileUpload("/file/uploadFile", folderId);
+  const upload = useMultiFileUpload(
+    "/file/uploadFile",
+    folderId,
+    notifyUploadSuccess,
+  );
+
+  const { refreshTick } = useUploadRefresh();
+
+  useEffect(() => {
+    setShowUploadedSection(true);
+  }, [refreshTick]);
 
   return (
     <div className="flex relative">
@@ -43,5 +53,17 @@ export default function HomeLayoutClient({
         totalProgress={upload.totalProgress}
       />
     </div>
+  );
+}
+
+export default function HomeLayoutClient({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <UploadRefreshProvider>
+      <HomeLayoutContent>{children}</HomeLayoutContent>
+    </UploadRefreshProvider>
   );
 }

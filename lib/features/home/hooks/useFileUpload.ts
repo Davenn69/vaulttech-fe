@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { apiClient } from "@/lib/cores/utils/api";
+import axios from "axios";
 
 export interface FileUploadState {
   file: File;
@@ -8,7 +9,11 @@ export interface FileUploadState {
   error?: string;
 }
 
-export function useMultiFileUpload(endpoint: string, parentFolderId: string) {
+export function useMultiFileUpload(
+  endpoint: string,
+  parentFolderId: string,
+  onUploadSuccess?: () => void,
+) {
   const [files, setFiles] = useState<FileUploadState[]>([]);
 
   const updateFile = (index: number, patch: Partial<FileUploadState>) => {
@@ -19,11 +24,11 @@ export function useMultiFileUpload(endpoint: string, parentFolderId: string) {
 
   const uploadByIndices = useCallback(
     async (targetIndices: number[]) => {
-      await Promise.all(
+      const results = await Promise.all(
         targetIndices.map(async (index) => {
           const targetFile = files[index];
           if (!targetFile) {
-            return;
+            return false;
           }
 
           const formData = new FormData();
@@ -48,13 +53,24 @@ export function useMultiFileUpload(endpoint: string, parentFolderId: string) {
               progress: 100,
               error: undefined,
             });
-          } catch (err: any) {
-            updateFile(index, { status: "error", error: err.message });
+            return true;
+          } catch (error) {
+            updateFile(index, {
+              status: "error",
+              error: axios.isAxiosError(error)
+                ? error.message
+                : "Failed to upload file",
+            });
+            return false;
           }
         }),
       );
+
+      if (results.some(Boolean)) {
+        onUploadSuccess?.();
+      }
     },
-    [endpoint, files],
+    [endpoint, files, onUploadSuccess, parentFolderId],
   );
 
   const addFiles = useCallback((newFiles: File[]) => {
@@ -93,7 +109,7 @@ export function useMultiFileUpload(endpoint: string, parentFolderId: string) {
 
       setFiles((prev) => [...prev, ...entries]);
 
-      await Promise.all(
+      const results = await Promise.all(
         newFiles.map(async (file, offset) => {
           const index = startIndex + offset;
           const formData = new FormData();
@@ -118,13 +134,24 @@ export function useMultiFileUpload(endpoint: string, parentFolderId: string) {
               progress: 100,
               error: undefined,
             });
-          } catch (err: any) {
-            updateFile(index, { status: "error", error: err.message });
+            return true;
+          } catch (error) {
+            updateFile(index, {
+              status: "error",
+              error: axios.isAxiosError(error)
+                ? error.message
+                : "Failed to upload file",
+            });
+            return false;
           }
         }),
       );
+
+      if (results.some(Boolean)) {
+        onUploadSuccess?.();
+      }
     },
-    [endpoint, files.length],
+    [endpoint, files.length, onUploadSuccess, parentFolderId],
   );
 
   const reset = useCallback(() => setFiles([]), []);

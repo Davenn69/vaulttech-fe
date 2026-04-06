@@ -14,11 +14,6 @@ const FOLDERS = [
   { id: 5, name: "Templates" },
 ];
 
-const FILES = Array.from({ length: 15 }, (_, i) => ({
-  id: i + 1,
-  name: "Outline.docx",
-}));
-
 export default function RepositoryGrid({ id }: { id: string }) {
   const { files, loading: fileLoading, fetchFiles } = useFileList(id);
 
@@ -51,7 +46,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
 
         {/* Files grid */}
         <div className="grid grid-cols-5 gap-3.5 xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3">
-          {FILES.map((file) => (
+          {files.map((file) => (
             <FileCard key={file.id} name={file.name} thumbnail={undefined} />
           ))}
         </div>

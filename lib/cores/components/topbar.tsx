@@ -3,7 +3,10 @@
 import { Search, RotateCcw, User } from "lucide-react";
 import { useState } from "react";
 
-export default function Topbar() {
+type TopbarType = {
+  onUploadToggle: () => void;
+};
+export default function Topbar({ onUploadToggle }: TopbarType) {
   const [query, setQuery] = useState("");
 
   return (
@@ -33,6 +36,7 @@ export default function Topbar() {
       {/* Actions */}
       <div className="flex items-center gap-2">
         <button
+          onClick={onUploadToggle}
           className="
           flex items-center justify-center w-9 h-9 rounded-xl
           text-[#7a7d82] hover:bg-[#252729] hover:text-[#e8e9ea]

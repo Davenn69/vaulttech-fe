@@ -3,27 +3,34 @@ import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import toast from "react-hot-toast";
 import { supabase } from "./supabase";
 
-async function getAuthHeaders(): Promise<Record<string, string>> {
+async function getAccessToken(): Promise<string | null> {
   const {
     data: { session },
   } = await supabase.auth.getSession();
-  if (!session) return { "Content-Type": "application/json" };
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${session.access_token}`,
-  };
+  return session?.access_token ?? null;
 }
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BASE_URL;
-const apiClient = axios.create({
+export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 apiClient.interceptors.request.use(
-  (config) => {
+  async (config) => {
+    const accessToken = await getAccessToken();
+
+    config.headers = config.headers ?? {};
+
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    } else if (!config.headers["Content-Type"]) {
+      config.headers["Content-Type"] = "application/json";
+    }
+
     console.log(`headers configuration ${config.headers}`);
     return config;
   },
@@ -36,30 +43,24 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error("API Error:", error.response || error.message);
+    console.log("API Error:", error.response || error.message);
     return Promise.reject(error);
   },
 );
 
 export const api = {
   get: async <T>(url: string, params?: any) => {
-    const headers = await getAuthHeaders();
-    console.log(`headers ${JSON.stringify(headers)}`);
-    return apiClient.get<T>(url, { params, headers }).then((res) => res.data);
+    return apiClient.get<T>(url, { params }).then((res) => res.data);
   },
   post: async <T>(url: string, data?: any) => {
-    const headers = await getAuthHeaders();
-    return apiClient.post<T>(url, data, { headers }).then((res) => res.data);
+    return apiClient.post<T>(url, data).then((res) => res.data);
   },
-
   put: async <T>(url: string, data?: any) => {
-    const headers = await getAuthHeaders();
-    return apiClient.put<T>(url, data, { headers }).then((res) => res.data);
+    return apiClient.put<T>(url, data).then((res) => res.data);
   },
 
   delete: async <T>(url: string) => {
-    const headers = await getAuthHeaders();
-    return apiClient.delete<T>(url, { headers }).then((res) => res.data);
+    return apiClient.delete<T>(url).then((res) => res.data);
   },
 };
 

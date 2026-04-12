@@ -10,18 +10,27 @@ import FolderChip from "@/lib/cores/components/folder_chip";
 import FileCard from "@/lib/cores/components/file_card";
 
 export default function RepositoryGrid({ id }: { id: string }) {
-  const { files, loading: fileLoading, fetchFiles } = useFileList();
-  const { folderList, loading: folderLoading, fetchFolders } = useFolderList();
+  const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
 
-  const { refreshTick } = useUploadRefresh();
+  const { files, loading: fileLoading, fetchFiles } = useFileList();
+  const {
+    folderList,
+    loading: folderLoading,
+    fetchFolders,
+  } = useFolderList(notifyUploadSuccess);
 
   useEffect(() => {
     if (!id) return;
     fetchFiles(id);
   }, [fetchFiles, id, refreshTick]);
 
+  useEffect(() => {
+    if (!id) return;
+    fetchFolders(id);
+  }, [fetchFolders, id, refreshTick]);
+
   return (
-    <PageWrapper isLoading={fileLoading}>
+    <PageWrapper isLoading={fileLoading && folderLoading}>
       <main className="flex-1 overflow-y-auto px-6 pt-6 pb-10 scrollbar-thin scrollbar-thumb-[#2a2c2e] scrollbar-track-transparent">
         {/* Header */}
         <div className="flex items-center gap-3 mb-5">

@@ -14,10 +14,18 @@ export default function Sidebar({
   activeItem,
   onNavigate,
   onUploadFiles,
+  onCreateFolder,
 }) {
   const [addButtonOpen, setAddButtonOpen] = useState(false);
 
   const buttonItems = [
+    {
+      label: "Add Folder",
+      iconRoute: "/assets/icons/Normal_File_Icon.svg",
+      onClick: () => {
+        onCreateFolder();
+      },
+    },
     {
       label: "Upload File",
       iconRoute: "/assets/icons/Normal_File_Icon.svg",

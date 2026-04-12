@@ -1,7 +1,7 @@
 "use client";
 
 import Topbar from "@/lib/features/home/component/topbar";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { FileUploader } from "./file_uploader";
 import { useMultiFileUpload } from "../hooks/useFileUpload";
 import { useParams } from "next/navigation";
@@ -10,6 +10,8 @@ import {
   useUploadRefresh,
 } from "../context/upload_refresh_context";
 import Sidebar from "./sidebar";
+import CreateFolderModal from "./create_folder_modal";
+import { useFolderList } from "../hooks/useFolderList";
 
 function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   const { notifyUploadSuccess } = useUploadRefresh();
@@ -17,22 +19,19 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   const folderId = Array.isArray(params.id) ? params.id[0] : (params.id ?? "");
 
   const [activeNav, setActiveNav] = useState("repository");
-  const [showUploadedSection, setShowUploadedSection] = useState(false);
+  const [isUploadPanelOpen, setIsUploadPanelOpen] = useState(false);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
+
   const upload = useMultiFileUpload(
     "/file/uploadFile",
     folderId,
     notifyUploadSuccess,
   );
-
-  useEffect(() => {
-    const hasActiveUpload = upload.files.some(
-      (file) => file.status === "pending" || file.status === "uploading",
-    );
-
-    if (hasActiveUpload) {
-      setShowUploadedSection(true);
-    }
-  }, [upload.files]);
+  const { uploadFolder } = useFolderList();
+  const hasActiveUpload = upload.files.some(
+    (file) => file.status === "pending" || file.status === "uploading",
+  );
+  const showUploadedSection = isUploadPanelOpen || hasActiveUpload;
 
   return (
     <div className="flex relative">
@@ -41,11 +40,12 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
           activeItem={activeNav}
           onNavigate={setActiveNav}
           onUploadFiles={upload.addAndUploadFiles}
+          onCreateFolder={() => setShowCreateFolder(true)}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Topbar
             onUploadToggle={() =>
-              setShowUploadedSection((prevState) => !prevState)
+              setIsUploadPanelOpen((prevState) => !prevState)
             }
           />
           {children}
@@ -55,6 +55,16 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
         showSection={showUploadedSection}
         files={upload.files}
         totalProgress={upload.totalProgress}
+      />
+      <CreateFolderModal
+        open={showCreateFolder}
+        onClose={function (): void {
+          setShowCreateFolder(false);
+        }}
+        onSubmit={async function (folderName: string): Promise<void> {
+          await uploadFolder(folderId, folderName);
+          setShowCreateFolder(false);
+        }}
       />
     </div>
   );

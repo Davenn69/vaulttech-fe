@@ -7,17 +7,12 @@ import { useFileList } from "@/lib/features/home/hooks/useFileList";
 import PageWrapper from "./page_wrapper";
 import { useEffect } from "react";
 import { useUploadRefresh } from "@/lib/features/home/context/upload_refresh_context";
-
-const FOLDERS = [
-  { id: 1, name: "Design Assets" },
-  { id: 2, name: "Projects" },
-  { id: 3, name: "Archive" },
-  { id: 4, name: "Shared" },
-  { id: 5, name: "Templates" },
-];
+import { useFolderList } from "@/lib/features/home/hooks/useFolderList";
 
 export default function RepositoryGrid({ id }: { id: string }) {
   const { files, loading: fileLoading, fetchFiles } = useFileList();
+  const { folderList, loading: folderLoading, fetchFolders } = useFolderList();
+
   const { refreshTick } = useUploadRefresh();
 
   useEffect(() => {
@@ -46,7 +41,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
 
         {/* Folders row */}
         <div className="flex flex-wrap gap-2 mb-5">
-          {FOLDERS.map((folder) => (
+          {folderList.map((folder) => (
             <FolderChip key={folder.id} name={folder.name} />
           ))}
         </div>

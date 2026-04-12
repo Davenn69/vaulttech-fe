@@ -24,11 +24,15 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
     notifyUploadSuccess,
   );
 
-  const { refreshTick } = useUploadRefresh();
-
   useEffect(() => {
-    setShowUploadedSection(true);
-  }, [refreshTick]);
+    const hasActiveUpload = upload.files.some(
+      (file) => file.status === "pending" || file.status === "uploading",
+    );
+
+    if (hasActiveUpload) {
+      setShowUploadedSection(true);
+    }
+  }, [upload.files]);
 
   return (
     <div className="flex relative">

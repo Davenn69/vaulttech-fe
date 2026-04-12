@@ -2,7 +2,7 @@ import { api } from "@/lib/cores/utils/api";
 import { FileModel } from "../types/file";
 import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
-import { ApiResponse } from "@/lib/cores/types/api_response";
+import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import axios from "axios";
 
 export function useFileList() {
@@ -16,7 +16,7 @@ export function useFileList() {
       const res = await api.get<ApiResponse<FileModel[]>>(`/file/${id}`);
       setFiles(res.data);
     } catch (error) {
-      const message = axios.isAxiosError<ApiResponse>(error)
+      const message = axios.isAxiosError<ApiResponseError>(error)
         ? error.response?.data.message
         : "Failed to fetch files";
 

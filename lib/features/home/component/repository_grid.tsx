@@ -1,13 +1,13 @@
 "use client";
 
 import { Play } from "lucide-react";
-import FolderChip from "./folder_chip";
-import FileCard from "./file_card";
 import { useFileList } from "@/lib/features/home/hooks/useFileList";
-import PageWrapper from "./page_wrapper";
 import { useEffect } from "react";
 import { useUploadRefresh } from "@/lib/features/home/context/upload_refresh_context";
 import { useFolderList } from "@/lib/features/home/hooks/useFolderList";
+import PageWrapper from "@/lib/cores/components/page_wrapper";
+import FolderChip from "@/lib/cores/components/folder_chip";
+import FileCard from "@/lib/cores/components/file_card";
 
 export default function RepositoryGrid({ id }: { id: string }) {
   const { files, loading: fileLoading, fetchFiles } = useFileList();

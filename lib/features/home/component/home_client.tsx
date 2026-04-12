@@ -1,7 +1,6 @@
 "use client";
 
-import Sidebar from "@/lib/cores/components/sidebar";
-import Topbar from "@/lib/cores/components/topbar";
+import Topbar from "@/lib/features/home/component/topbar";
 import React, { useEffect, useState } from "react";
 import { FileUploader } from "./file_uploader";
 import { useMultiFileUpload } from "../hooks/useFileUpload";
@@ -10,6 +9,7 @@ import {
   UploadRefreshProvider,
   useUploadRefresh,
 } from "../context/upload_refresh_context";
+import Sidebar from "./sidebar";
 
 function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   const { notifyUploadSuccess } = useUploadRefresh();

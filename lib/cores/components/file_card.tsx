@@ -2,24 +2,42 @@
 
 import { MoreHorizontal, FileText } from "lucide-react";
 import { createPortal } from "react-dom";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
-
-const menuItems = [
-  { label: "Open", danger: false },
-  { label: "Rename", danger: false },
-  { label: "Download", danger: false },
-  { label: "Delete", danger: true },
-];
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+} from "react";
 
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-export default function FileCard({ name = "Outline.docx", thumbnail }) {
+type FileCardType = {
+  id: string;
+  name: string;
+  thumbnail?: string;
+  onDelete?: (id: string) => void;
+};
+
+export default function FileCard({
+  id,
+  name,
+  thumbnail,
+  onDelete,
+}: FileCardType) {
+  const menuItems = [
+    { label: "Open", danger: false, onTap: () => {} },
+    { label: "Rename", danger: false, onTap: () => {} },
+    { label: "Download", danger: false, onTap: () => {} },
+    { label: "Delete", danger: true, onTap: () => onDelete?.(id) },
+  ];
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
-  const buttonRef = useRef(null);
-  const menuRef = useRef(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -39,10 +57,16 @@ export default function FileCard({ name = "Outline.docx", thumbnail }) {
     const viewportHeight = window.innerHeight;
 
     let left = rect.right - menuWidth;
-    left = Math.max(padding, Math.min(left, viewportWidth - menuWidth - padding));
+    left = Math.max(
+      padding,
+      Math.min(left, viewportWidth - menuWidth - padding),
+    );
 
     let top = rect.bottom + gap;
-    if (top + menuHeight > viewportHeight - padding && rect.top - gap - menuHeight >= padding) {
+    if (
+      top + menuHeight > viewportHeight - padding &&
+      rect.top - gap - menuHeight >= padding
+    ) {
       top = rect.top - gap - menuHeight;
     }
 
@@ -57,7 +81,7 @@ export default function FileCard({ name = "Outline.docx", thumbnail }) {
   useEffect(() => {
     if (!menuOpen) return undefined;
 
-    const handler = (e) => {
+    const handler = (e: MouseEvent) => {
       const target = e.target;
       if (!(target instanceof Node)) return;
 
@@ -139,7 +163,7 @@ export default function FileCard({ name = "Outline.docx", thumbnail }) {
           {/* Dropdown trigger */}
           <button
             ref={buttonRef}
-            onClick={(e) => {
+            onClick={(e: ReactMouseEvent<HTMLButtonElement>) => {
               e.stopPropagation();
               setMenuOpen((p) => !p);
             }}
@@ -170,10 +194,13 @@ export default function FileCard({ name = "Outline.docx", thumbnail }) {
               left: `${menuPosition.left}px`,
             }}
           >
-            {menuItems.map(({ label, danger }) => (
+            {menuItems.map(({ label, danger, onTap }) => (
               <button
                 key={label}
-                onClick={() => setMenuOpen(false)}
+                onClick={() => {
+                  onTap?.();
+                  setMenuOpen(false);
+                }}
                 className={`
                   block w-full px-2.5 py-[7px] text-left text-[13px] rounded-lg
                   transition-all duration-100

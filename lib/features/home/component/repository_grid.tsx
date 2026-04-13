@@ -17,6 +17,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
     folderList,
     loading: folderLoading,
     fetchFolders,
+    deleteFolder,
   } = useFolderList(notifyUploadSuccess);
 
   useEffect(() => {
@@ -51,7 +52,13 @@ export default function RepositoryGrid({ id }: { id: string }) {
         {/* Folders row */}
         <div className="flex flex-wrap gap-2 mb-5">
           {folderList.map((folder) => (
-            <FolderChip key={folder.id} name={folder.name} />
+            <FolderChip
+              key={folder.id}
+              name={folder.name}
+              onDeleteTap={() => {
+                deleteFolder(folder.id);
+              }}
+            />
           ))}
         </div>
 

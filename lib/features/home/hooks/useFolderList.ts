@@ -26,32 +26,56 @@ export function useFolderList(onUploadSuccess?: () => void) {
     }
   }, []);
 
-  const uploadFolder = useCallback(async (id: string, name: string) => {
+  const uploadFolder = useCallback(
+    async (id: string, name: string) => {
+      setLoading(true);
+
+      try {
+        const res = await api.post<ApiResponse<FolderModel>>("/folder", {
+          parentId: id,
+          name: name,
+        });
+
+        toast.success(res.message);
+        onUploadSuccess?.();
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to fetch folders";
+
+        toast.error(message ?? "Failed to fetch folders");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onUploadSuccess],
+  );
+
+  const deleteFolder = useCallback(async (id: string) => {
     setLoading(true);
 
     try {
-      const res = await api.post<ApiResponse<FolderModel>>("/folder", {
-        parentId: id,
-        name: name,
-      });
+      const res = await api.delete<ApiResponse<FolderModel>>(
+        `/folder/delete/${id}`,
+      );
 
       toast.success(res.message);
-      onUploadSuccess?.();
     } catch (error) {
       const message = axios.isAxiosError<ApiResponseError>(error)
         ? error.response?.data.message
         : "Failed to fetch folders";
 
-      toast.error(message ?? "Failed to fetch folders");
+      toast.error(message ?? "Failed to delete folders");
     } finally {
       setLoading(false);
     }
-  }, [onUploadSuccess]);
+  }, []);
 
   return {
     folderList,
     loading,
     uploadFolder,
     fetchFolders,
+    deleteFolder,
   };
 }

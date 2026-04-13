@@ -3,20 +3,30 @@
 import { Folder, MoreVertical } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 
-const menuItems = [
-  { label: "Open", danger: false },
-  { label: "Rename", danger: false },
-  { label: "Move to Trash", danger: true },
-];
+type FolderChipType = {
+  name: string;
+  onDeleteTap: () => void;
+};
 
-export default function FolderChip({ name = "Folder" }) {
+export default function FolderChip({ name, onDeleteTap }: FolderChipType) {
+  const menuItems = [
+    { label: "Open", danger: false, onTap: () => {} },
+    { label: "Rename", danger: false, onTap: () => {} },
+    { label: "Move to Trash", danger: true, onTap: onDeleteTap },
+  ];
+
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const ref = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const handler = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    const handler = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+
+      if (ref.current && target && !ref.current.contains(target)) {
+        setOpen(false);
+      }
     };
+
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, []);
@@ -59,10 +69,13 @@ export default function FolderChip({ name = "Folder" }) {
             animate-[dropIn_0.12s_ease]
           "
           >
-            {menuItems.map(({ label, danger }) => (
+            {menuItems.map(({ label, danger, onTap }) => (
               <button
                 key={label}
-                onClick={() => setOpen(false)}
+                onClick={() => {
+                  setOpen(false);
+                  onTap();
+                }}
                 className={`
                   block w-full px-2.5 py-[7px] text-left text-[13px] rounded-lg
                   transition-all duration-100

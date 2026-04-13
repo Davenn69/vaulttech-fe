@@ -55,8 +55,8 @@ export const api = {
   post: async <T>(url: string, data?: any) => {
     return apiClient.post<T>(url, data).then((res) => res.data);
   },
-  put: async <T>(url: string, data?: any) => {
-    return apiClient.put<T>(url, data).then((res) => res.data);
+  patch: async <T>(url: string, data?: any) => {
+    return apiClient.patch<T>(url, data).then((res) => res.data);
   },
 
   delete: async <T>(url: string) => {

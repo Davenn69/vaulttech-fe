@@ -71,9 +71,38 @@ export function useFolderList(onUploadSuccess?: () => void) {
     }
   }, []);
 
+  const renameFolder = useCallback(
+    async (id: string, name: string) => {
+      setLoading(true);
+
+      try {
+        const res = await api.patch<ApiResponse<FolderModel>>(
+          `/folder/updateName`,
+          {
+            id,
+            name,
+          },
+        );
+
+        toast.success(res.message);
+        onUploadSuccess?.();
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to rename folder";
+
+        toast.error(message ?? "Failed to rename folder");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onUploadSuccess],
+  );
+
   return {
     folderList,
     loading,
+    renameFolder,
     uploadFolder,
     fetchFolders,
     deleteFolder,

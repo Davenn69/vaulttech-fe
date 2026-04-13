@@ -5,13 +5,18 @@ import { useState, useRef, useEffect } from "react";
 
 type FolderChipType = {
   name: string;
+  onRenameTap: () => void;
   onDeleteTap: () => void;
 };
 
-export default function FolderChip({ name, onDeleteTap }: FolderChipType) {
+export default function FolderChip({
+  name,
+  onRenameTap,
+  onDeleteTap,
+}: FolderChipType) {
   const menuItems = [
     { label: "Open", danger: false, onTap: () => {} },
-    { label: "Rename", danger: false, onTap: () => {} },
+    { label: "Rename", danger: false, onTap: onRenameTap },
     { label: "Move to Trash", danger: true, onTap: onDeleteTap },
   ];
 

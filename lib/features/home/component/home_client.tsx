@@ -9,6 +9,7 @@ import {
   UploadRefreshProvider,
   useUploadRefresh,
 } from "../context/upload_refresh_context";
+import { CurrentDirectoryProvider } from "../context/current_directory_context";
 import {
   FolderModalProvider,
   useFolderModal,
@@ -51,61 +52,63 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   const showUploadedSection = isUploadPanelOpen || hasActiveUpload;
 
   return (
-    <div className="flex relative">
-      <div className="flex h-screen w-full overflow-hidden bg-[#111213] text-[#e8e9ea]">
-        <Sidebar
-          activeItem={activeNav}
-          onNavigate={setActiveNav}
-          onUploadFiles={upload.addAndUploadFiles}
-          onCreateFolder={() => setShowCreateFolder(true)}
-        />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <Topbar
-            onUploadToggle={() =>
-              setIsUploadPanelOpen((prevState) => !prevState)
-            }
+    <CurrentDirectoryProvider>
+      <div className="flex relative">
+        <div className="flex h-screen w-full overflow-hidden bg-[#111213] text-[#e8e9ea]">
+          <Sidebar
+            activeItem={activeNav}
+            onNavigate={setActiveNav}
+            onUploadFiles={upload.addAndUploadFiles}
+            onCreateFolder={() => setShowCreateFolder(true)}
           />
-          {children}
+          <div className="flex flex-col flex-1 overflow-hidden">
+            <Topbar
+              onUploadToggle={() =>
+                setIsUploadPanelOpen((prevState) => !prevState)
+              }
+            />
+            {children}
+          </div>
         </div>
+        <FileUploader
+          showSection={showUploadedSection}
+          files={upload.files}
+          totalProgress={upload.totalProgress}
+        />
+
+        {/* Create Folder Modal */}
+        <InputModal
+          open={showCreateFolder}
+          onClose={() => setShowCreateFolder(false)}
+          onSubmit={async function (folderName: string): Promise<void> {
+            await uploadFolder(folderId, folderName);
+            setShowCreateFolder(false);
+          }}
+        />
+
+        {/* Update Folder Modal */}
+        <InputModal
+          open={isUpdateFolderOpen}
+          initialValue={selectedFolderName}
+          onClose={closeUpdateFolderModal}
+          onSubmit={async (folderName) => {
+            await renameFolder(selectedFolderId, folderName);
+            closeUpdateFolderModal();
+          }}
+        />
+
+        {/* Update File Modal */}
+        <InputModal
+          open={isUpdateFileOpen}
+          initialValue={selectedFileName}
+          onClose={closeUpdateFileModal}
+          onSubmit={async (fileName) => {
+            await renameFile(selectedFileId, fileName);
+            closeUpdateFileModal();
+          }}
+        />
       </div>
-      <FileUploader
-        showSection={showUploadedSection}
-        files={upload.files}
-        totalProgress={upload.totalProgress}
-      />
-
-      {/* Create Folder Modal */}
-      <InputModal
-        open={showCreateFolder}
-        onClose={() => setShowCreateFolder(false)}
-        onSubmit={async function (folderName: string): Promise<void> {
-          await uploadFolder(folderId, folderName);
-          setShowCreateFolder(false);
-        }}
-      />
-
-      {/* Update Folder Modal */}
-      <InputModal
-        open={isUpdateFolderOpen}
-        initialValue={selectedFolderName}
-        onClose={closeUpdateFolderModal}
-        onSubmit={async (folderName) => {
-          await renameFolder(selectedFolderId, folderName);
-          closeUpdateFolderModal();
-        }}
-      />
-
-      {/* Update File Modal */}
-      <InputModal
-        open={isUpdateFileOpen}
-        initialValue={selectedFileName}
-        onClose={closeUpdateFileModal}
-        onSubmit={async (fileName) => {
-          await renameFile(selectedFileId, fileName);
-          closeUpdateFileModal();
-        }}
-      />
-    </div>
+    </CurrentDirectoryProvider>
   );
 }
 

@@ -5,12 +5,14 @@ import { useState, useRef, useEffect } from "react";
 
 type FolderChipType = {
   name: string;
+  onTap?: () => void;
   onRenameTap: () => void;
   onDeleteTap: () => void;
 };
 
 export default function FolderChip({
   name,
+  onTap,
   onRenameTap,
   onDeleteTap,
 }: FolderChipType) {
@@ -38,11 +40,23 @@ export default function FolderChip({
 
   return (
     <div
+      role={onTap ? "button" : undefined}
+      tabIndex={onTap ? 0 : undefined}
+      onClick={onTap}
+      onKeyDown={(event) => {
+        if (!onTap) return;
+
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onTap();
+        }
+      }}
       className="
       flex items-center justify-between gap-2
       bg-[#1a1b1d] border border-[#2a2c2e] rounded-md
       px-2.5 py-[7px] min-w-[130px]
       hover:border-[#3a3c3e] transition-colors duration-150
+      cursor-pointer
     "
     >
       {/* Left */}
@@ -54,7 +68,10 @@ export default function FolderChip({
       {/* More menu */}
       <div className="relative shrink-0" ref={ref}>
         <button
-          onClick={() => setOpen((p) => !p)}
+          onClick={(event) => {
+            event.stopPropagation();
+            setOpen((p) => !p);
+          }}
           className="
             flex items-center justify-center w-6 h-6 rounded
             text-[#4a4d52] hover:bg-[#252729] hover:text-[#7a7d82]

@@ -1,6 +1,5 @@
 "use client";
 
-import { Play } from "lucide-react";
 import { useFileList } from "@/lib/features/home/hooks/useFileList";
 import { useEffect } from "react";
 import { useUploadRefresh } from "@/lib/features/home/context/upload_refresh_context";
@@ -9,10 +8,15 @@ import { useFolderList } from "@/lib/features/home/hooks/useFolderList";
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import FolderChip from "@/lib/cores/components/folder_chip";
 import FileCard from "@/lib/cores/components/file_card";
+import { useRouter } from "next/navigation";
+import { useCurrentDirectory } from "../context/current_directory_context";
+import DirectoryInfo from "./directory_info";
 
 export default function RepositoryGrid({ id }: { id: string }) {
   const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
   const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
+  const router = useRouter();
+  const { pushDirectory } = useCurrentDirectory();
 
   const {
     files,
@@ -41,21 +45,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
   return (
     <PageWrapper isLoading={fileLoading && folderLoading}>
       <main className="flex-1 overflow-y-auto px-6 pt-6 pb-10 scrollbar-thin scrollbar-thumb-[#2a2c2e] scrollbar-track-transparent">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-5">
-          <h1 className="text-[18px] font-semibold tracking-tight text-[#e8e9ea]">
-            Repository
-          </h1>
-          <button
-            className="
-          flex items-center justify-center w-[26px] h-[26px] rounded-full
-          text-[#7a7d82] hover:bg-[rgba(108,92,231,0.18)] hover:text-[#6c5ce7]
-          transition-all duration-150
-        "
-          >
-            <Play size={13} fill="currentColor" />
-          </button>
-        </div>
+        <DirectoryInfo />
 
         {/* Folders row */}
         <div className="flex flex-wrap gap-2 mb-5">
@@ -66,6 +56,10 @@ export default function RepositoryGrid({ id }: { id: string }) {
               onRenameTap={() => openUpdateFolderModal(folder.id, folder.name)}
               onDeleteTap={() => {
                 deleteFolder(folder.id);
+              }}
+              onTap={() => {
+                pushDirectory(folder);
+                router.push(`/home/${folder.id}`);
               }}
             />
           ))}

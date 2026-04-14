@@ -9,6 +9,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
 } from "react";
+import { MenuItemType } from "../types/menu_item_type";
 
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -17,24 +18,15 @@ type FileCardType = {
   id: string;
   name: string;
   thumbnail?: string;
-  onDelete?: (id: string) => void;
-  onRename?: (id: string) => void;
+  menuItems: MenuItemType[];
 };
 
 export default function FileCard({
   id,
   name,
   thumbnail,
-  onDelete,
-  onRename,
+  menuItems,
 }: FileCardType) {
-  const menuItems = [
-    { label: "Open", danger: false, onTap: () => {} },
-    { label: "Rename", danger: false, onTap: () => onRename?.(id) },
-    { label: "Download", danger: false, onTap: () => {} },
-    { label: "Delete", danger: true, onTap: () => onDelete?.(id) },
-  ];
-
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });

@@ -45,7 +45,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
   return (
     <PageWrapper isLoading={fileLoading && folderLoading}>
       <main className="flex-1 overflow-y-auto px-6 pt-6 pb-10 scrollbar-thin scrollbar-thumb-[#2a2c2e] scrollbar-track-transparent">
-        <DirectoryInfo />
+        {/* <DirectoryInfo /> */}
 
         {/* Folders row */}
         <div className="flex flex-wrap gap-2 mb-5">
@@ -53,10 +53,21 @@ export default function RepositoryGrid({ id }: { id: string }) {
             <FolderChip
               key={folder.id}
               name={folder.name}
-              onRenameTap={() => openUpdateFolderModal(folder.id, folder.name)}
-              onDeleteTap={() => {
-                deleteFolder(folder.id);
-              }}
+              menuItems={[
+                { label: "Open", danger: false, onTap: () => {} },
+                {
+                  label: "Rename",
+                  danger: false,
+                  onTap: () => openUpdateFolderModal(folder.id, folder.name),
+                },
+                {
+                  label: "Move to Trash",
+                  danger: true,
+                  onTap: () => {
+                    deleteFolder(folder.id);
+                  },
+                },
+              ]}
               onTap={() => {
                 pushDirectory(folder);
                 router.push(`/home/${folder.id}`);
@@ -72,9 +83,21 @@ export default function RepositoryGrid({ id }: { id: string }) {
               key={file.id}
               id={file.id}
               name={file.name}
+              menuItems={[
+                { label: "Open", danger: false, onTap: () => {} },
+                {
+                  label: "Rename",
+                  danger: false,
+                  onTap: () => openUpdateFileModal(file.id, file.name),
+                },
+                { label: "Download", danger: false, onTap: () => {} },
+                {
+                  label: "Delete",
+                  danger: true,
+                  onTap: () => deleteFile(file.id),
+                },
+              ]}
               thumbnail={undefined}
-              onDelete={deleteFile}
-              onRename={() => openUpdateFileModal(file.id, file.name)}
             />
           ))}
         </div>

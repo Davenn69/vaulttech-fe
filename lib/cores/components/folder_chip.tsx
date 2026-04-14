@@ -2,26 +2,15 @@
 
 import { Folder, MoreVertical } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
+import { MenuItemType } from "../types/menu_item_type";
 
 type FolderChipType = {
   name: string;
   onTap?: () => void;
-  onRenameTap: () => void;
-  onDeleteTap: () => void;
+  menuItems: MenuItemType[];
 };
 
-export default function FolderChip({
-  name,
-  onTap,
-  onRenameTap,
-  onDeleteTap,
-}: FolderChipType) {
-  const menuItems = [
-    { label: "Open", danger: false, onTap: () => {} },
-    { label: "Rename", danger: false, onTap: onRenameTap },
-    { label: "Move to Trash", danger: true, onTap: onDeleteTap },
-  ];
-
+export default function FolderChip({ name, onTap, menuItems }: FolderChipType) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 

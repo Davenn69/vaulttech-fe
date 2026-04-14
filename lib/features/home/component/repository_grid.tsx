@@ -2,28 +2,31 @@
 
 import { Play } from "lucide-react";
 import { useFileList } from "@/lib/features/home/hooks/useFileList";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useUploadRefresh } from "@/lib/features/home/context/upload_refresh_context";
+import { useFolderModal } from "@/lib/features/home/context/folder_modal_context";
 import { useFolderList } from "@/lib/features/home/hooks/useFolderList";
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import FolderChip from "@/lib/cores/components/folder_chip";
 import FileCard from "@/lib/cores/components/file_card";
-import UpdateFolderModal from "./update_folder_modal";
 
 export default function RepositoryGrid({ id }: { id: string }) {
   const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
+  const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
 
-  const { files, loading: fileLoading, fetchFiles } = useFileList();
+  const {
+    files,
+    loading: fileLoading,
+    fetchFiles,
+    deleteFile,
+    renameFile,
+  } = useFileList();
   const {
     folderList,
     loading: folderLoading,
     fetchFolders,
     deleteFolder,
-    renameFolder,
   } = useFolderList(notifyUploadSuccess);
-  const [isUpdateFolderOpen, setIsUpdateFolderOpen] = useState(false);
-  const [selectedFolderId, setSelectedFolderId] = useState("");
-  const [selectedFolderName, setSelectedFolderName] = useState("");
 
   useEffect(() => {
     if (!id) return;
@@ -34,12 +37,6 @@ export default function RepositoryGrid({ id }: { id: string }) {
     if (!id) return;
     fetchFolders(id);
   }, [fetchFolders, id, refreshTick]);
-
-  const openUpdateFolderModal = (folderId: string, folderName: string) => {
-    setSelectedFolderId(folderId);
-    setSelectedFolderName(folderName);
-    setIsUpdateFolderOpen(true);
-  };
 
   return (
     <PageWrapper isLoading={fileLoading && folderLoading}>
@@ -77,25 +74,16 @@ export default function RepositoryGrid({ id }: { id: string }) {
         {/* Files grid */}
         <div className="grid grid-cols-5 gap-3.5 xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3">
           {files.map((file) => (
-            <FileCard key={file.id} name={file.name} thumbnail={undefined} />
+            <FileCard
+              key={file.id}
+              id={file.id}
+              name={file.name}
+              thumbnail={undefined}
+              onDelete={deleteFile}
+              onRename={() => openUpdateFileModal(file.id, file.name)}
+            />
           ))}
         </div>
-
-        <UpdateFolderModal
-          open={isUpdateFolderOpen}
-          initialValue={selectedFolderName}
-          onClose={() => {
-            setIsUpdateFolderOpen(false);
-            setSelectedFolderId("");
-            setSelectedFolderName("");
-          }}
-          onSubmit={async (folderName) => {
-            await renameFolder(selectedFolderId, folderName);
-            setIsUpdateFolderOpen(false);
-            setSelectedFolderId("");
-            setSelectedFolderName("");
-          }}
-        />
       </main>
     </PageWrapper>
   );

@@ -9,12 +9,27 @@ import {
   UploadRefreshProvider,
   useUploadRefresh,
 } from "../context/upload_refresh_context";
+import {
+  FolderModalProvider,
+  useFolderModal,
+} from "../context/folder_modal_context";
 import Sidebar from "./sidebar";
-import CreateFolderModal from "./create_folder_modal";
 import { useFolderList } from "../hooks/useFolderList";
+import InputModal from "./input_modal";
+import { useFileList } from "../hooks/useFileList";
 
 function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   const { notifyUploadSuccess } = useUploadRefresh();
+  const {
+    closeUpdateFolderModal,
+    isUpdateFolderOpen,
+    selectedFolderId,
+    selectedFolderName,
+    closeUpdateFileModal,
+    isUpdateFileOpen,
+    selectedFileId,
+    selectedFileName,
+  } = useFolderModal();
   const params = useParams();
   const folderId = Array.isArray(params.id) ? params.id[0] : (params.id ?? "");
 
@@ -27,7 +42,9 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
     folderId,
     notifyUploadSuccess,
   );
-  const { uploadFolder } = useFolderList();
+  const { renameFile } = useFileList();
+  const { uploadFolder, renameFolder } = useFolderList();
+
   const hasActiveUpload = upload.files.some(
     (file) => file.status === "pending" || file.status === "uploading",
   );
@@ -56,14 +73,36 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
         files={upload.files}
         totalProgress={upload.totalProgress}
       />
-      <CreateFolderModal
+
+      {/* Create Folder Modal */}
+      <InputModal
         open={showCreateFolder}
-        onClose={function (): void {
-          setShowCreateFolder(false);
-        }}
+        onClose={() => setShowCreateFolder(false)}
         onSubmit={async function (folderName: string): Promise<void> {
           await uploadFolder(folderId, folderName);
           setShowCreateFolder(false);
+        }}
+      />
+
+      {/* Update Folder Modal */}
+      <InputModal
+        open={isUpdateFolderOpen}
+        initialValue={selectedFolderName}
+        onClose={closeUpdateFolderModal}
+        onSubmit={async (folderName) => {
+          await renameFolder(selectedFolderId, folderName);
+          closeUpdateFolderModal();
+        }}
+      />
+
+      {/* Update File Modal */}
+      <InputModal
+        open={isUpdateFileOpen}
+        initialValue={selectedFileName}
+        onClose={closeUpdateFileModal}
+        onSubmit={async (fileName) => {
+          await renameFile(selectedFileId, fileName);
+          closeUpdateFileModal();
         }}
       />
     </div>
@@ -77,7 +116,9 @@ export default function HomeLayoutClient({
 }) {
   return (
     <UploadRefreshProvider>
-      <HomeLayoutContent>{children}</HomeLayoutContent>
+      <FolderModalProvider>
+        <HomeLayoutContent>{children}</HomeLayoutContent>
+      </FolderModalProvider>
     </UploadRefreshProvider>
   );
 }

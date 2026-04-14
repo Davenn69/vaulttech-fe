@@ -18,6 +18,7 @@ type FileCardType = {
   name: string;
   thumbnail?: string;
   onDelete?: (id: string) => void;
+  onRename?: (id: string) => void;
 };
 
 export default function FileCard({
@@ -25,10 +26,11 @@ export default function FileCard({
   name,
   thumbnail,
   onDelete,
+  onRename,
 }: FileCardType) {
   const menuItems = [
     { label: "Open", danger: false, onTap: () => {} },
-    { label: "Rename", danger: false, onTap: () => {} },
+    { label: "Rename", danger: false, onTap: () => onRename?.(id) },
     { label: "Download", danger: false, onTap: () => {} },
     { label: "Delete", danger: true, onTap: () => onDelete?.(id) },
   ];

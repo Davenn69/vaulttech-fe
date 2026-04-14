@@ -70,7 +70,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
               ]}
               onTap={() => {
                 pushDirectory(folder);
-                router.push(`/home/${folder.id}`);
+                router.push(`/repo/${folder.id}`);
               }}
             />
           ))}

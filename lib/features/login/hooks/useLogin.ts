@@ -43,7 +43,7 @@ export function useLogin() {
       console.log(response);
       toast.success(response.message);
       const folderId = response.data.initialFolder;
-      router.replace(`/home/${folderId}`);
+      router.replace(`/repo/${folderId}`);
     },
     onError: (error: AxiosError<ApiResponseError>) => {
       console.log(error.response?.data);

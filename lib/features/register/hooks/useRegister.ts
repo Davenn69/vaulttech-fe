@@ -90,7 +90,7 @@ export function useRegister() {
 
       successHandler(response);
       const folderId = response.data.initialFolder;
-      router.replace(`/home/${folderId}`);
+      router.replace(`/repo/${folderId}`);
     },
     onError: (error: AxiosError<ApiResponseError>) => {
       errorHandler(error);

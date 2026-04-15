@@ -83,9 +83,10 @@ export default function FolderChip({ name, onTap, menuItems }: FolderChipType) {
             {menuItems.map(({ label, danger, onTap }) => (
               <button
                 key={label}
-                onClick={() => {
+                onClick={(event) => {
+                  event.stopPropagation();
                   setOpen(false);
-                  onTap();
+                  onTap?.();
                 }}
                 className={`
                   block w-full px-2.5 py-[7px] text-left text-[13px] rounded-lg

@@ -99,6 +99,31 @@ export function useFolderList(onUploadSuccess?: () => void) {
     [onUploadSuccess],
   );
 
+  const addFolderToFavourite = useCallback(
+    async (id: string) => {
+      setLoading(true);
+
+      try {
+        const res = await api.patch<ApiResponse<FolderModel>>(
+          `/folder/addFavourite`,
+          { id },
+        );
+
+        toast.success(res.message);
+        onUploadSuccess?.();
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to add to favourites";
+
+        toast.error(message ?? "Failed to add to favourites");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onUploadSuccess],
+  );
+
   return {
     folderList,
     loading,
@@ -106,5 +131,6 @@ export function useFolderList(onUploadSuccess?: () => void) {
     uploadFolder,
     fetchFolders,
     deleteFolder,
+    addFolderToFavourite,
   };
 }

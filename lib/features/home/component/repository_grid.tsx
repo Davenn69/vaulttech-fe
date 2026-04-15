@@ -24,12 +24,14 @@ export default function RepositoryGrid({ id }: { id: string }) {
     fetchFiles,
     deleteFile,
     renameFile,
+    addFileToFavourite,
   } = useFileList();
   const {
     folderList,
     loading: folderLoading,
     fetchFolders,
     deleteFolder,
+    addFolderToFavourite,
   } = useFolderList(notifyUploadSuccess);
 
   useEffect(() => {
@@ -61,6 +63,11 @@ export default function RepositoryGrid({ id }: { id: string }) {
                   onTap: () => openUpdateFolderModal(folder.id, folder.name),
                 },
                 {
+                  label: "Add to Favourites",
+                  danger: false,
+                  onTap: () => addFolderToFavourite(folder.id),
+                },
+                {
                   label: "Move to Trash",
                   danger: true,
                   onTap: () => {
@@ -89,6 +96,11 @@ export default function RepositoryGrid({ id }: { id: string }) {
                   label: "Rename",
                   danger: false,
                   onTap: () => openUpdateFileModal(file.id, file.name),
+                },
+                {
+                  label: "Add to Favourites",
+                  danger: false,
+                  onTap: () => addFileToFavourite(file.id),
                 },
                 { label: "Download", danger: false, onTap: () => {} },
                 {

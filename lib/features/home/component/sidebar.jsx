@@ -1,21 +1,36 @@
 "use client";
 
 import { FolderOpen, Clock, Star, Trash2, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-const navItems = [
-  { icon: FolderOpen, label: "My Repository", id: "repository" },
-  { icon: Clock, label: "Recent", id: "recent" },
-  { icon: Star, label: "Favourites", id: "favourites" },
-  { icon: Trash2, label: "Trash", id: "trash" },
-];
 
 export default function Sidebar({
   activeItem,
-  onNavigate,
   onUploadFiles,
   onCreateFolder,
+  onNavigate,
 }) {
+  const router = useRouter();
+
+  const navItems = [
+    {
+      icon: FolderOpen,
+      label: "My Repository",
+      id: "repository",
+      onTap: () => {},
+    },
+    { icon: Clock, label: "Recent", id: "recent", onTap: () => {} },
+    { icon: Star, label: "Favourites", id: "favourites", onTap: () => {} },
+    {
+      icon: Trash2,
+      label: "Trash",
+      id: "trash",
+      onTap: async () => {
+        await router.push("/repo/trash");
+      },
+    },
+  ];
+
   const [addButtonOpen, setAddButtonOpen] = useState(false);
 
   const buttonItems = [
@@ -74,10 +89,13 @@ export default function Sidebar({
 
       {/* Navigation */}
       <nav className="flex flex-col gap-0.5 flex-1">
-        {navItems.map(({ icon: Icon, label, id }) => (
+        {navItems.map(({ icon: Icon, label, id, onTap }) => (
           <button
             key={id}
-            onClick={() => onNavigate(id)}
+            onClick={async () => {
+              await onTap();
+              onNavigate(id);
+            }}
             className={`
               flex items-center gap-2.5 px-3 py-[9px] rounded-xl
               text-[13.5px] text-left w-full transition-all duration-150

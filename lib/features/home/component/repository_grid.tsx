@@ -25,6 +25,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
     deleteFile,
     renameFile,
     addFileToFavourite,
+    downloadFile,
   } = useFileList();
   const {
     folderList,
@@ -87,8 +88,8 @@ export default function RepositoryGrid({ id }: { id: string }) {
         <div className="grid grid-cols-5 gap-3.5 xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3">
           {files.map((file) => (
             <FileCard
-              key={file.id}
               id={file.id}
+              key={file.id}
               name={file.name}
               menuItems={[
                 { label: "Open", danger: false, onTap: () => {} },
@@ -102,7 +103,13 @@ export default function RepositoryGrid({ id }: { id: string }) {
                   danger: false,
                   onTap: () => addFileToFavourite(file.id),
                 },
-                { label: "Download", danger: false, onTap: () => {} },
+                {
+                  label: "Download",
+                  danger: false,
+                  onTap: () => {
+                    downloadFile(file.id);
+                  },
+                },
                 {
                   label: "Delete",
                   danger: true,

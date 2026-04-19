@@ -10,3 +10,9 @@ export type FileModel = {
   isFavourite: boolean;
   isDeleted: boolean;
 };
+
+export type DownloadFileUrl = {
+  name: string;
+  size: number;
+  downloadUrl: string;
+};

@@ -1,5 +1,5 @@
 import { api } from "@/lib/cores/utils/api";
-import { FileModel } from "../types/file";
+import { DownloadFileUrl, FileModel } from "../types/file";
 import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
@@ -103,6 +103,36 @@ export function useFileList(onUploadSuccess?: () => void) {
     [onUploadSuccess],
   );
 
+  const downloadFile = useCallback(async (id: string) => {
+    try {
+      const res = await api.get<ApiResponse<DownloadFileUrl>>(
+        `/file/download/${id}`,
+      );
+
+      const { downloadUrl, name } = res.data;
+
+      if (!downloadUrl) {
+        throw new Error("Missing download url");
+      }
+
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = name || "download";
+      link.rel = "noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success(res.message);
+    } catch (error) {
+      const message = axios.isAxiosError<ApiResponseError>(error)
+        ? error.response?.data.message
+        : "Failed to download file";
+
+      toast.error(message ?? "Failed to download file");
+    }
+  }, []);
+
   return {
     files,
     loading,
@@ -110,5 +140,6 @@ export function useFileList(onUploadSuccess?: () => void) {
     renameFile,
     addFileToFavourite,
     deleteFile,
+    downloadFile,
   };
 }

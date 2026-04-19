@@ -40,7 +40,7 @@ export default function RecentGrid() {
                 </h3>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {group.file.map((item) => (
-                    <FileCard id={item.name} name={item.name} menuItems={[]} />
+                    <FileCard name={item.name} menuItems={[]} />
                   ))}
                 </div>
               </div>

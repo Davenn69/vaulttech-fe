@@ -47,7 +47,6 @@ export default function FavouriteGrid() {
           {files!.map((file) => (
             <FileCard
               key={file.id}
-              id={file.id}
               name={file.name}
               thumbnail={undefined}
               menuItems={[]}

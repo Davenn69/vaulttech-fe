@@ -19,8 +19,22 @@ export default function Sidebar({
       id: "repository",
       onTap: () => {},
     },
-    { icon: Clock, label: "Recent", id: "recent", onTap: () => {} },
-    { icon: Star, label: "Favourites", id: "favourites", onTap: () => {} },
+    {
+      icon: Clock,
+      label: "Recent",
+      id: "recent",
+      onTap: async () => {
+        await router.push("/repo/recent");
+      },
+    },
+    {
+      icon: Star,
+      label: "Favourites",
+      id: "favourites",
+      onTap: async () => {
+        await router.push("/repo/favourites");
+      },
+    },
     {
       icon: Trash2,
       label: "Trash",

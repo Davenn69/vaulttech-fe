@@ -103,35 +103,39 @@ export function useFileList(onUploadSuccess?: () => void) {
     [onUploadSuccess],
   );
 
-  const downloadFile = useCallback(async (id: string) => {
-    try {
-      const res = await api.get<ApiResponse<DownloadFileUrl>>(
-        `/file/download/${id}`,
-      );
+  const downloadFile = useCallback(
+    async (id: string) => {
+      try {
+        const res = await api.get<ApiResponse<DownloadFileUrl>>(
+          `/file/download/${id}`,
+        );
 
-      const { downloadUrl, name } = res.data;
+        const { downloadUrl, name } = res.data;
 
-      if (!downloadUrl) {
-        throw new Error("Missing download url");
+        if (!downloadUrl) {
+          throw new Error("Missing download url");
+        }
+
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = name || "download";
+        link.rel = "noreferrer";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        toast.success(res.message);
+        onUploadSuccess?.();
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to download file";
+
+        toast.error(message ?? "Failed to download file");
       }
-
-      const link = document.createElement("a");
-      link.href = downloadUrl;
-      link.download = name || "download";
-      link.rel = "noreferrer";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      toast.success(res.message);
-    } catch (error) {
-      const message = axios.isAxiosError<ApiResponseError>(error)
-        ? error.response?.data.message
-        : "Failed to download file";
-
-      toast.error(message ?? "Failed to download file");
-    }
-  }, []);
+    },
+    [onUploadSuccess],
+  );
 
   return {
     files,

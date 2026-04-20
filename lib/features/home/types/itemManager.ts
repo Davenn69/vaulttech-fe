@@ -29,7 +29,10 @@ class ItemManager {
   private items: Map<string, DraggableItemModel> = new Map();
   private cleanups: Array<() => void> = [];
 
-  constructor(private apiBase: string) {}
+  constructor(
+    private apiBase: string,
+    private onMoveSuccess?: () => void,
+  ) {}
 
   registerDraggable(element: HTMLElement, item: DraggableItemModel): void {
     element.setAttribute("draggable", "true");
@@ -163,13 +166,14 @@ class ItemManager {
       );
 
       toast.success(res.message);
+      this.onMoveSuccess?.();
       return true;
     } catch (error) {
       const message = axios.isAxiosError<ApiResponseError>(error)
         ? error.response?.data.message
-        : "Failed to add to favourites";
+        : "Failed to move file";
 
-      toast.error(message ?? "Failed to add to favourites");
+      toast.error(message ?? "Failed to move file");
       return false;
     }
   }

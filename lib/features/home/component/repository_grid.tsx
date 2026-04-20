@@ -30,7 +30,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
     deleteFile,
     addFileToFavourite,
     downloadFile,
-  } = useFileList();
+  } = useFileList(notifyUploadSuccess);
   const {
     folderList,
     loading: folderLoading,
@@ -52,6 +52,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
   useEffect(() => {
     itemManagerRef.current = new ItemManager(
       process.env.NEXT_PUBLIC_BASE_URL ?? "",
+      notifyUploadSuccess,
     );
 
     return () => {
@@ -110,7 +111,6 @@ export default function RepositoryGrid({ id }: { id: string }) {
                 isFavourite={folder.isFavourite}
                 name={folder.name}
                 menuItems={[
-                  { label: "Open", danger: false, onTap: () => {} },
                   {
                     label: "Rename",
                     danger: false,

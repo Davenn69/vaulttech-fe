@@ -3,10 +3,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { LoginCredentials, LoginResponse } from "../types/loginTypes";
-import { api, nextApi } from "@/lib/cores/base/service";
 import { AxiosError } from "axios";
 import toast from "react-hot-toast";
 import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
+import { supabase } from "@/lib/cores/utils/supabase";
 
 export function useLogin() {
   const router = useRouter();
@@ -15,18 +15,35 @@ export function useLogin() {
     AxiosError<ApiResponseError>,
     LoginCredentials
   >({
-    mutationFn: (credentials: LoginCredentials) =>
-      nextApi.post("/api/auth/login", credentials).then((res) => {
-        console.log(res.config.url);
-        console.log(res.config.baseURL);
-        console.log(res.data);
-        return res.data;
-      }),
+    mutationFn: async (credentials: LoginCredentials) => {
+      const { data, error } =
+        await supabase.auth.signInWithPassword(credentials);
+
+      if (error) throw error;
+
+      const token = data.session?.access_token;
+
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}/auth/login`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: credentials.email,
+            password: credentials.password,
+          }),
+        },
+      );
+
+      return res.json();
+    },
     onSuccess: (response: ApiResponse<LoginResponse>) => {
       console.log(response);
       toast.success(response.message);
-
-      router.replace("/home/sada");
+      const folderId = response.data.initialFolder;
+      router.replace(`/repo/${folderId}`);
     },
     onError: (error: AxiosError<ApiResponseError>) => {
       console.log(error.response?.data);

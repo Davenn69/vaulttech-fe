@@ -51,25 +51,29 @@ export function useFolderList(onUploadSuccess?: () => void) {
     [onUploadSuccess],
   );
 
-  const deleteFolder = useCallback(async (id: string) => {
-    setLoading(true);
+  const deleteFolder = useCallback(
+    async (id: string) => {
+      setLoading(true);
 
-    try {
-      const res = await api.delete<ApiResponse<FolderModel>>(
-        `/folder/delete/${id}`,
-      );
+      try {
+        const res = await api.delete<ApiResponse<FolderModel>>(
+          `/folder/delete/${id}`,
+        );
 
-      toast.success(res.message);
-    } catch (error) {
-      const message = axios.isAxiosError<ApiResponseError>(error)
-        ? error.response?.data.message
-        : "Failed to fetch folders";
+        toast.success(res.message);
+        onUploadSuccess?.();
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to fetch folders";
 
-      toast.error(message ?? "Failed to delete folders");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        toast.error(message ?? "Failed to delete folders");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onUploadSuccess],
+  );
 
   const renameFolder = useCallback(
     async (id: string, name: string) => {

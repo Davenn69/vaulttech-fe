@@ -13,13 +13,16 @@ import { useCurrentDirectory } from "../context/current_directory_context";
 import ItemManager, { DraggableItemModel } from "../types/itemManager";
 
 export default function RepositoryGrid({ id }: { id: string }) {
+  const router = useRouter();
+
   const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
   const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
-  const router = useRouter();
   const { pushDirectory } = useCurrentDirectory();
+
   const gridRef = useRef<HTMLDivElement | null>(null);
   const itemManagerRef = useRef<ItemManager | null>(null);
 
+  //API - related
   const {
     files,
     loading: fileLoading,

@@ -1,7 +1,7 @@
 "use client";
 
 import Topbar from "@/lib/features/home/component/topbar";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FileUploader } from "./file_uploader";
 import { useMultiFileUpload } from "../hooks/useFileUpload";
 import { useParams } from "next/navigation";
@@ -20,7 +20,10 @@ import InputModal from "./input_modal";
 import { useFileList } from "../hooks/useFileList";
 
 function HomeLayoutContent({ children }: { children: React.ReactNode }) {
-  const { notifyUploadSuccess } = useUploadRefresh();
+  const params = useParams();
+  const folderId = Array.isArray(params.id) ? params.id[0] : (params.id ?? "");
+
+  const { notifyUploadSuccess, refreshTick } = useUploadRefresh();
   const {
     closeUpdateFolderModal,
     isUpdateFolderOpen,
@@ -31,25 +34,33 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
     selectedFileId,
     selectedFileName,
   } = useFolderModal();
-  const params = useParams();
-  const folderId = Array.isArray(params.id) ? params.id[0] : (params.id ?? "");
-
-  const [activeNav, setActiveNav] = useState("repository");
-  const [isUploadPanelOpen, setIsUploadPanelOpen] = useState(false);
-  const [showCreateFolder, setShowCreateFolder] = useState(false);
 
   const upload = useMultiFileUpload(
     "/file/uploadFile",
     folderId,
     notifyUploadSuccess,
   );
-  const { renameFile } = useFileList();
-  const { uploadFolder, renameFolder } = useFolderList();
+  const { renameFile, fetchFiles } = useFileList(notifyUploadSuccess);
+  const { uploadFolder, renameFolder, fetchFolders } =
+    useFolderList(notifyUploadSuccess);
 
+  const [activeNav, setActiveNav] = useState("repository");
+  const [isUploadPanelOpen, setIsUploadPanelOpen] = useState(false);
+  const [showCreateFolder, setShowCreateFolder] = useState(false);
   const hasActiveUpload = upload.files.some(
     (file) => file.status === "pending" || file.status === "uploading",
   );
   const showUploadedSection = isUploadPanelOpen || hasActiveUpload;
+
+  useEffect(() => {
+    if (!folderId) return;
+    fetchFiles(folderId);
+  }, [fetchFiles, folderId, refreshTick]);
+
+  useEffect(() => {
+    if (!folderId) return;
+    fetchFolders(folderId);
+  }, [fetchFolders, folderId, refreshTick]);
 
   return (
     <CurrentDirectoryProvider>

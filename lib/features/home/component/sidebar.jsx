@@ -45,8 +45,6 @@ export default function Sidebar({
     },
   ];
 
-  const [addButtonOpen, setAddButtonOpen] = useState(false);
-
   const buttonItems = [
     {
       label: "Add Folder",
@@ -89,6 +87,8 @@ export default function Sidebar({
       onClick: () => {},
     },
   ];
+
+  const [addButtonOpen, setAddButtonOpen] = useState(false);
 
   return (
     <aside className="w-[200px] shrink-0 flex flex-col h-full px-4 py-6 border-r border-[#222426] bg-[#111213]">

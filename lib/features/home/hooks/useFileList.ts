@@ -103,6 +103,31 @@ export function useFileList(onUploadSuccess?: () => void) {
     [onUploadSuccess],
   );
 
+  const removeFileFromFavourites = useCallback(
+    async (id: string) => {
+      setLoading(true);
+
+      try {
+        const res = await api.patch<ApiResponse<FileModel>>(
+          `/file/removeFavourite`,
+          { id },
+        );
+
+        toast.success(res.message);
+        onUploadSuccess?.();
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to add to favourites";
+
+        toast.error(message ?? "Failed to add to favourites");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onUploadSuccess],
+  );
+
   const downloadFile = useCallback(
     async (id: string) => {
       try {
@@ -143,6 +168,7 @@ export function useFileList(onUploadSuccess?: () => void) {
     fetchFiles,
     renameFile,
     addFileToFavourite,
+    removeFileFromFavourites,
     deleteFile,
     downloadFile,
   };

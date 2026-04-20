@@ -128,6 +128,31 @@ export function useFolderList(onUploadSuccess?: () => void) {
     [onUploadSuccess],
   );
 
+  const removeFolderFromFavourites = useCallback(
+    async (id: string) => {
+      setLoading(true);
+
+      try {
+        const res = await api.patch<ApiResponse<FolderModel>>(
+          `/folder/removeFavourite`,
+          { id },
+        );
+
+        toast.success(res.message);
+        onUploadSuccess?.();
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to remove from favourites";
+
+        toast.error(message ?? "Failed to remove from favourites");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onUploadSuccess],
+  );
+
   return {
     folderList,
     loading,
@@ -136,5 +161,6 @@ export function useFolderList(onUploadSuccess?: () => void) {
     fetchFolders,
     deleteFolder,
     addFolderToFavourite,
+    removeFolderFromFavourites,
   };
 }

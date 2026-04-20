@@ -6,6 +6,10 @@ import PageWrapper from "@/lib/cores/components/page_wrapper";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import useFavourites from "../hooks/useFavourites";
+import { useFolderModal } from "../../home/context/folder_modal_context";
+import { useUploadRefresh } from "../../home/context/upload_refresh_context";
+import { useFileList } from "../../home/hooks/useFileList";
+import { useFolderList } from "../../home/hooks/useFolderList";
 
 export default function FavouriteGrid() {
   const router = useRouter();
@@ -17,10 +21,19 @@ export default function FavouriteGrid() {
     fetchFavouriteFolders,
   } = useFavourites();
 
+  const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
+  const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
+
+  //API - related
+  const { deleteFile, removeFileFromFavourites, downloadFile } =
+    useFileList(notifyUploadSuccess);
+  const { deleteFolder, removeFolderFromFavourites } =
+    useFolderList(notifyUploadSuccess);
+
   useEffect(() => {
     fetchFavouriteFiles();
     fetchFavouriteFolders();
-  }, []);
+  }, [fetchFavouriteFiles, fetchFavouriteFolders, refreshTick]);
 
   return (
     <PageWrapper isLoading={loading}>
@@ -34,7 +47,25 @@ export default function FavouriteGrid() {
               key={folder.id}
               isFavourite={folder.isFavourite}
               name={folder.name}
-              menuItems={[]}
+              menuItems={[
+                {
+                  label: "Rename",
+                  danger: false,
+                  onTap: () => openUpdateFolderModal(folder.id, folder.name),
+                },
+                {
+                  label: "Remove from Favourites",
+                  danger: false,
+                  onTap: () => removeFolderFromFavourites(folder.id),
+                },
+                {
+                  label: "Move to Trash",
+                  danger: true,
+                  onTap: () => {
+                    deleteFolder(folder.id);
+                  },
+                },
+              ]}
               onTap={() => {
                 // pushDirectory(folder);
                 router.push(`/home/${folder.id}`);
@@ -51,7 +82,31 @@ export default function FavouriteGrid() {
               isFavourite={file.isFavourite}
               name={file.name}
               thumbnail={undefined}
-              menuItems={[]}
+              menuItems={[
+                { label: "Open", danger: false, onTap: () => {} },
+                {
+                  label: "Rename",
+                  danger: false,
+                  onTap: () => openUpdateFileModal(file.id, file.name),
+                },
+                {
+                  label: "Remove from Favourites",
+                  danger: false,
+                  onTap: () => removeFileFromFavourites(file.id),
+                },
+                {
+                  label: "Download",
+                  danger: false,
+                  onTap: () => {
+                    downloadFile(file.id);
+                  },
+                },
+                {
+                  label: "Delete",
+                  danger: true,
+                  onTap: () => deleteFile(file.id),
+                },
+              ]}
             />
           ))}
         </div>

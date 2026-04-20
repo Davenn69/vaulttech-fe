@@ -1,6 +1,6 @@
 "use client";
 
-import { Folder, MoreVertical } from "lucide-react";
+import { Folder, MoreVertical, Star } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { MenuItemType } from "../types/menu_item_type";
 
@@ -8,9 +8,15 @@ type FolderChipType = {
   name: string;
   onTap?: () => void;
   menuItems: MenuItemType[];
+  isFavourite?: boolean;
 };
 
-export default function FolderChip({ name, onTap, menuItems }: FolderChipType) {
+export default function FolderChip({
+  name,
+  onTap,
+  menuItems,
+  isFavourite,
+}: FolderChipType) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
 
@@ -52,6 +58,9 @@ export default function FolderChip({ name, onTap, menuItems }: FolderChipType) {
       <div className="flex items-center gap-2 overflow-hidden">
         <Folder size={14} className="text-[#fd7c5a] shrink-0" />
         <span className="text-[12.5px] text-[#e8e9ea] truncate">{name}</span>
+        {isFavourite && (
+          <Star size={10} className="fill-current text-[#f1c84c]" />
+        )}
       </div>
 
       {/* More menu */}

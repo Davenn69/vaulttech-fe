@@ -29,7 +29,12 @@ export default function RecentGrid() {
                 </h3>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {group.folder.map((item) => (
-                    <FolderChip name={item.name} menuItems={[]} />
+                    <FolderChip
+                      key={item.id}
+                      isFavourite={item.isFavourite}
+                      name={item.name}
+                      menuItems={[]}
+                    />
                   ))}
                 </div>
               </div>
@@ -40,7 +45,12 @@ export default function RecentGrid() {
                 </h3>
                 <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {group.file.map((item) => (
-                    <FileCard name={item.name} menuItems={[]} />
+                    <FileCard
+                      key={item.id}
+                      isFavourite={item.isFavourite}
+                      name={item.name}
+                      menuItems={[]}
+                    />
                   ))}
                 </div>
               </div>

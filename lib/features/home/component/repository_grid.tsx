@@ -107,6 +107,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
           {folderList.map((folder) => (
             <div key={folder.id} data-item-id={folder.id} className="w-fit">
               <FolderChip
+                isFavourite={folder.isFavourite}
                 name={folder.name}
                 menuItems={[
                   { label: "Open", danger: false, onTap: () => {} },
@@ -142,6 +143,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
           {files.map((file) => (
             <div key={file.id} data-item-id={file.id}>
               <FileCard
+                isFavourite={file.isFavourite}
                 name={file.name}
                 id={file.id}
                 menuItems={[

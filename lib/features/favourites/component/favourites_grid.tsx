@@ -32,6 +32,7 @@ export default function FavouriteGrid() {
           {folders!.map((folder) => (
             <FolderChip
               key={folder.id}
+              isFavourite={folder.isFavourite}
               name={folder.name}
               menuItems={[]}
               onTap={() => {
@@ -47,6 +48,7 @@ export default function FavouriteGrid() {
           {files!.map((file) => (
             <FileCard
               key={file.id}
+              isFavourite={file.isFavourite}
               name={file.name}
               thumbnail={undefined}
               menuItems={[]}

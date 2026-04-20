@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal, FileText } from "lucide-react";
+import { MoreHorizontal, FileText, Star } from "lucide-react";
 import { createPortal } from "react-dom";
 import {
   useEffect,
@@ -15,10 +15,11 @@ const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 type FileCardType = {
-  id: string;
+  id?: string;
   name: string;
   thumbnail?: string;
   menuItems: MenuItemType[];
+  isFavourite?: boolean;
 };
 
 export default function FileCard({
@@ -26,6 +27,7 @@ export default function FileCard({
   name,
   thumbnail,
   menuItems,
+  isFavourite,
 }: FileCardType) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -122,6 +124,20 @@ export default function FileCard({
       <div className="overflow-hidden rounded-2xl">
         {/* Preview */}
         <div className="relative aspect-[4/3] bg-[#f5f6f7] flex items-center justify-center overflow-hidden">
+          {isFavourite && (
+            <div
+              className="
+                absolute right-2 top-2 z-10 inline-flex items-center gap-1
+                rounded-full bg-[#1a1b1d]/85
+                px-2 py-2 text-[11px] font-medium text-[#f1c84c]
+                shadow-[0_4px_14px_rgba(0,0,0,0.28)]
+                backdrop-blur-sm
+              "
+            >
+              <Star size={11} className="fill-current" />
+            </div>
+          )}
+
           {thumbnail ? (
             <img
               src={thumbnail}

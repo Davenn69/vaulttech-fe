@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { FolderOpen, Clock, Star, Trash2, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -74,7 +75,9 @@ export default function Sidebar({
     {
       label: "Word",
       iconRoute: "/assets/icons/Word_Icon.svg",
-      onClick: () => {},
+      onClick: () => {
+        router.push("/repo/word");
+      },
     },
     {
       label: "Excel",
@@ -152,7 +155,7 @@ export default function Sidebar({
                 text-[#7a7d82] hover:bg-[#252729] hover:text-[#e8e9ea]"
                 >
                   <div className="flex flex-row gap-2 items-center">
-                    <img width={24} height={24} src={iconRoute} />
+                    <Image width={24} height={24} src={iconRoute} alt={label} />
                     <p>{label}</p>
                   </div>
                 </button>

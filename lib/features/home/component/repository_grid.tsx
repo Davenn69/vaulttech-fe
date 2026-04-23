@@ -147,7 +147,13 @@ export default function RepositoryGrid({ id }: { id: string }) {
                 name={file.name}
                 id={file.id}
                 menuItems={[
-                  { label: "Open", danger: false, onTap: () => {} },
+                  {
+                    label: "Open",
+                    danger: false,
+                    onTap: () => {
+                      router.push(`/word/${file.id}`);
+                    },
+                  },
                   {
                     label: "Rename",
                     danger: false,

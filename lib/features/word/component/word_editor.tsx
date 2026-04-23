@@ -8,7 +8,6 @@ import {
   Bold,
   Code,
   Download,
-  FilePlus2,
   Heading1,
   Heading2,
   Heading3,
@@ -19,9 +18,7 @@ import {
   Quote,
   Redo2,
   Save,
-  Sparkles,
   Strikethrough,
-  Trash2,
   Underline as UnderlineIcon,
   Undo2,
 } from "lucide-react";
@@ -29,15 +26,6 @@ import { type ComponentType, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import useWord from "../hooks/useWord";
-
-type WordDraft = {
-  id: string;
-  title: string;
-  content: JSONContent;
-  updatedAt: string;
-};
-
-const STORAGE_KEY = "vaulttech-word-drafts";
 
 const EMPTY_DOCUMENT: JSONContent = {
   type: "doc",
@@ -47,26 +35,6 @@ const EMPTY_DOCUMENT: JSONContent = {
     },
   ],
 };
-
-function createDraftId() {
-  if (
-    typeof crypto !== "undefined" &&
-    typeof crypto.randomUUID === "function"
-  ) {
-    return crypto.randomUUID();
-  }
-
-  return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function createDraft(title = "Untitled document"): WordDraft {
-  return {
-    id: createDraftId(),
-    title,
-    content: EMPTY_DOCUMENT,
-    updatedAt: new Date().toISOString(),
-  };
-}
 
 function escapeRtfText(value: string) {
   return value
@@ -282,39 +250,10 @@ function normalizeEditorContent(raw?: JSONContent | string): JSONContent {
   };
 }
 
-function loadDrafts(): WordDraft[] {
-  if (typeof window === "undefined") return [createDraft()];
-
-  const raw = window.localStorage.getItem(STORAGE_KEY);
-  if (!raw) return [createDraft()];
-
-  try {
-    const parsed = JSON.parse(raw) as WordDraft[];
-
-    if (!Array.isArray(parsed) || parsed.length === 0) {
-      return [createDraft()];
-    }
-
-    return parsed;
-  } catch {
-    return [createDraft()];
-  }
-}
-
-function saveDrafts(drafts: WordDraft[]) {
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts));
-}
-
 export default function WordEditor({ id }: { id: string }) {
-  const { loading, content } = useWord(id);
-  const [drafts, setDrafts] = useState<WordDraft[]>(() => loadDrafts());
-  const [activeDraftId, setActiveDraftId] = useState(
-    () => loadDrafts()[0]?.id ?? "",
-  );
+  const { loading, saving, content, saveContent } = useWord(id);
+  const [, setEditorTick] = useState(0);
   const lastAppliedRemoteContentRef = useRef<string | undefined>("");
-
-  const activeDraft =
-    drafts.find((draft) => draft.id === activeDraftId) ?? drafts[0];
 
   const editor = useEditor(
     {
@@ -337,51 +276,33 @@ export default function WordEditor({ id }: { id: string }) {
         }),
       ],
       immediatelyRender: false,
-      content: activeDraft?.content ?? EMPTY_DOCUMENT,
+      content: content ?? EMPTY_DOCUMENT,
       editorProps: {
         attributes: {
           class:
             "min-h-[540px] w-full rounded-3xl border border-[#2a2c2e] bg-[#121315] px-6 py-5 text-[15px] leading-7 text-[#e8e9ea] outline-none focus:border-[#6c5ce7] focus:shadow-[0_0_0_3px_rgba(108,92,231,0.15)]",
         },
       },
-      onUpdate: ({ editor: instance }) => {
-        const nextContent = instance.getJSON();
-
-        setDrafts((current) =>
-          current.map((draft) =>
-            draft.id === activeDraftId
-              ? {
-                  ...draft,
-                  content: nextContent,
-                }
-              : draft,
-          ),
-        );
+      onUpdate: () => {
+        setEditorTick((current) => current + 1);
       },
     },
-    [activeDraftId],
+    [content],
   );
 
   useEffect(() => {
-    if (!editor || !activeDraft) return;
-    editor.commands.setContent(activeDraft.content);
-  }, [activeDraft, editor]);
+    if (!editor || !content) return;
 
-  useEffect(() => {
-    if (!editor || !content || !activeDraft) return;
     const nextContent = normalizeEditorContent(content);
     const contentSignature = JSON.stringify(nextContent);
+    const editorSignature = JSON.stringify(editor.getJSON());
 
+    if (contentSignature === editorSignature) return;
     if (lastAppliedRemoteContentRef.current === contentSignature) return;
+
     lastAppliedRemoteContentRef.current = contentSignature;
-
-    editor.commands.setContent(nextContent);
-  }, [activeDraft, content, editor]);
-
-  useEffect(() => {
-    if (drafts.length === 0) return;
-    saveDrafts(drafts);
-  }, [drafts]);
+    editor.commands.setContent(nextContent, false);
+  }, [content, editor]);
 
   const plainText = editor?.getText() ?? "";
   const activeStats = {
@@ -389,61 +310,26 @@ export default function WordEditor({ id }: { id: string }) {
     characters: plainText.length,
   };
 
-  const syncCurrentDraft = () => {
-    if (!editor || !activeDraft) return;
+  const syncCurrentDraft = async () => {
+    if (!editor) return;
 
-    const updatedAt = new Date().toISOString();
     const nextContent = editor.getJSON();
-    const nextTitle = activeDraft.title.trim() || "Untitled document";
 
-    setDrafts((current) =>
-      current.map((draft) =>
-        draft.id === activeDraft.id
-          ? {
-              ...draft,
-              title: nextTitle,
-              content: nextContent,
-              updatedAt,
-            }
-          : draft,
-      ),
-    );
-    toast.success("Draft saved");
-  };
-
-  const createNewDraft = () => {
-    const nextDraft = createDraft();
-    setDrafts((current) => [nextDraft, ...current]);
-    setActiveDraftId(nextDraft.id);
-    editor?.commands.setContent(EMPTY_DOCUMENT);
-    toast.success("New draft created");
-  };
-
-  const deleteDraft = (draftId: string) => {
-    if (drafts.length <= 1) {
-      toast.error("Keep at least one draft");
+    try {
+      await saveContent(id, nextContent);
+      toast.success("Document saved");
+    } catch {
       return;
     }
-
-    const nextDrafts = drafts.filter((draft) => draft.id !== draftId);
-    setDrafts(nextDrafts);
-
-    if (draftId === activeDraftId) {
-      const fallback = nextDrafts[0];
-      setActiveDraftId(fallback.id);
-      editor?.commands.setContent(fallback.content);
-    }
-
-    toast.success("Draft deleted");
   };
 
   const downloadAsWord = () => {
-    if (!editor || !activeDraft) return;
+    if (!editor) return;
 
-    const nextTitle = activeDraft.title.trim() || activeDraft.title;
+    const nextTitle = "Document";
     const rtf = toRtfDocument(nextTitle, editor.getJSON());
     const blob = new Blob([rtf], { type: "application/rtf" });
-    const fileName = `${nextTitle.replace(/[\\/:*?"<>|]/g, "-")}.rtf`;
+    const fileName = "document.rtf";
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement("a");
@@ -490,111 +376,26 @@ export default function WordEditor({ id }: { id: string }) {
         className="flex h-full min-h-0 flex-1 overflow-hidden bg-[#111213] text-[#e8e9ea]"
         suppressHydrationWarning
       >
-        {/* <aside className="hidden w-[300px] shrink-0 border-r border-[#222426] bg-[#121315] px-4 py-5 xl:block">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-[#7a7d82]">
-                Word workspace
-              </p>
-              <h1 className="mt-2 text-lg font-semibold text-[#f5f6f7]">
-                Draft library
-              </h1>
-            </div>
-
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[rgba(108,92,231,0.12)] text-[#6c5ce7]">
-              <Sparkles size={18} />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={createNewDraft}
-            className="mb-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#6c5ce7] px-4 py-3 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5"
-          >
-            <FilePlus2 size={16} />
-            New document
-          </button>
-
-          <div className="space-y-2">
-            {drafts.map((draft) => {
-              const isActive = draft.id === activeDraftId;
-
-              return (
-                <button
-                  key={draft.id}
-                  type="button"
-                  onClick={() => {
-                    setActiveDraftId(draft.id);
-                    editor?.commands.setContent(draft.content);
-                  }}
-                  className={`w-full rounded-2xl border px-4 py-3 text-left transition-colors ${
-                    isActive
-                      ? "border-[#6c5ce7] bg-[rgba(108,92,231,0.12)]"
-                      : "border-[#222426] bg-[#17181a] hover:border-[#2a2c2e]"
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-[#f5f6f7]">
-                        {draft.title}
-                      </p>
-                      <p className="mt-1 text-xs text-[#7a7d82]">
-                        Updated {new Date(draft.updatedAt).toLocaleString()}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        deleteDraft(draft.id);
-                      }}
-                      className="rounded-lg p-1.5 text-[#7a7d82] transition-colors hover:bg-[#252729] hover:text-[#ff6b6b]"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </aside> */}
-
         <section className="flex min-w-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#222426] bg-[#121315] px-5 py-4">
             <div className="min-w-0">
               <p className="text-xs uppercase tracking-[0.24em] text-[#7a7d82]">
-                Document
+                Document from backend
               </p>
-              <input
-                value={activeDraft?.title ?? ""}
-                onChange={(event) => {
-                  const nextTitle = event.target.value;
-
-                  setDrafts((current) =>
-                    current.map((draft) =>
-                      draft.id === activeDraftId
-                        ? {
-                            ...draft,
-                            title: nextTitle,
-                          }
-                        : draft,
-                    ),
-                  );
-                }}
-                className="mt-2 w-full max-w-[680px] bg-transparent text-2xl font-semibold text-[#f5f6f7] outline-none placeholder:text-[#4a4d52]"
-                placeholder="Untitled document"
-              />
+              <h1 className="mt-2 text-2xl font-semibold text-[#f5f6f7]">
+                Word editor
+              </h1>
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={syncCurrentDraft}
-                className="inline-flex items-center gap-2 rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm font-medium text-[#e8e9ea] transition-colors hover:bg-[#252729]"
+                disabled={saving}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm font-medium text-[#e8e9ea] transition-colors hover:bg-[#252729] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Save size={15} />
-                Save
+                {saving ? "Saving..." : "Save"}
               </button>
               <button
                 type="button"
@@ -715,11 +516,9 @@ export default function WordEditor({ id }: { id: string }) {
                       <p className="text-[10px] uppercase tracking-[0.22em] text-[#7a7d82]">
                         Status
                       </p>
-                      {/* <p className="mt-1 text-sm font-medium text-[#e8e9ea]">
-                        {activeDraft?.updatedAt
-                          ? `Saved ${new Date(activeDraft.updatedAt).toLocaleString()}`
-                          : "Not saved yet"}
-                      </p> */}
+                      <p className="mt-1 text-sm font-medium text-[#e8e9ea]">
+                        Content loaded from backend
+                      </p>
                     </div>
 
                     <div className="h-8 w-px bg-[#222426]" />
@@ -739,7 +538,7 @@ export default function WordEditor({ id }: { id: string }) {
                     <div className="flex-1" />
 
                     <div className="text-xs leading-5 text-[#7a7d82]">
-                      Use the toolbar above to format, save to keep local, and
+                      Use the toolbar above to format, save to backend, and
                       download as Word-compatible `.rtf`.
                     </div>
                   </div>

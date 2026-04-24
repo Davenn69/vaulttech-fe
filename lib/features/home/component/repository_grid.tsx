@@ -151,7 +151,15 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     label: "Open",
                     danger: false,
                     onTap: () => {
-                      router.push(`/word/${file.id}`);
+                      console.log(file);
+                      switch (file.extension) {
+                        case "word":
+                          router.push(`/word/${file.id}`);
+                        case "excel":
+                        case "pdf":
+                          router.push(`/pdf/${file.id}`);
+                        default:
+                      }
                     },
                   },
                   {

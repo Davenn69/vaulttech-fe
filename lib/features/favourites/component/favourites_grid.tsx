@@ -10,6 +10,7 @@ import { useFolderModal } from "../../home/context/folder_modal_context";
 import { useUploadRefresh } from "../../home/context/upload_refresh_context";
 import { useFileList } from "../../home/hooks/useFileList";
 import { useFolderList } from "../../home/hooks/useFolderList";
+import { PageRoutes } from "@/lib/cores/utils/navigation";
 
 export default function FavouriteGrid() {
   const router = useRouter();
@@ -68,7 +69,7 @@ export default function FavouriteGrid() {
               ]}
               onTap={() => {
                 // pushDirectory(folder);
-                router.push(`/home/${folder.id}`);
+                router.push(PageRoutes.repositoryFolder(folder.id));
               }}
             />
           ))}

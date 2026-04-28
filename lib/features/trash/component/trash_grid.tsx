@@ -4,6 +4,7 @@ import PageWrapper from "@/lib/cores/components/page_wrapper";
 import { useTrash } from "../hooks/useTrash";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { PageRoutes } from "@/lib/cores/utils/navigation";
 
 export default function TrashGrid() {
   const router = useRouter();
@@ -46,7 +47,7 @@ export default function TrashGrid() {
               ]}
               onTap={() => {
                 // pushDirectory(folder);
-                router.push(`/home/${folder.id}`);
+                router.push(PageRoutes.repositoryFolder(folder.id));
               }}
             />
           ))}

@@ -11,6 +11,7 @@ import FileCard from "@/lib/cores/components/file_card";
 import { useRouter } from "next/navigation";
 import { useCurrentDirectory } from "../context/current_directory_context";
 import ItemManager, { DraggableItemModel } from "../types/itemManager";
+import { PageRoutes } from "@/lib/cores/utils/navigation";
 
 export default function RepositoryGrid({ id }: { id: string }) {
   const router = useRouter();
@@ -129,11 +130,11 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     },
                   },
                 ]}
-                onTap={() => {
-                  pushDirectory(folder);
-                  router.push(`/repo/${folder.id}`);
-                }}
-              />
+              onTap={() => {
+                pushDirectory(folder);
+                router.push(PageRoutes.repositoryFolder(folder.id));
+              }}
+            />
             </div>
           ))}
         </div>
@@ -151,17 +152,20 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     label: "Open",
                     danger: false,
                     onTap: () => {
-                      console.log(file);
-                      switch (file.extension) {
-                        case "word":
-                          router.push(`/word/${file.id}`);
-                        case "excel":
-                        case "pdf":
-                          router.push(`/pdf/${file.id}`);
-                        default:
-                      }
-                    },
+                    console.log(file);
+                    switch (file.extension) {
+                      case "word":
+                        router.push(PageRoutes.wordFile(file.id));
+                        break;
+                      case "excel":
+                      case "pdf":
+                        router.push(PageRoutes.pdfFile(file.id));
+                        break;
+                      default:
+                        break;
+                    }
                   },
+                },
                   {
                     label: "Rename",
                     danger: false,

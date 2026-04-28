@@ -5,6 +5,7 @@ import { AxiosError } from "axios";
 import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import { errorHandler, successHandler } from "@/lib/cores/utils/api";
 import { supabase } from "@/lib/cores/utils/supabase";
+import { folderStorage } from "@/lib/cores/utils/local";
 
 export function useRegister() {
   const router = useRouter();
@@ -90,6 +91,7 @@ export function useRegister() {
 
       successHandler(response);
       const folderId = response.data.initialFolder;
+      folderStorage.setParentFolderId(folderId);
       router.replace(`/repo/${folderId}`);
     },
     onError: (error: AxiosError<ApiResponseError>) => {

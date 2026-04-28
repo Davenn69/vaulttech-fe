@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useSearch } from "../hooks/useSearch";
+import { PageRoutes } from "@/lib/cores/utils/navigation";
 
 type TopbarType = {
   onUploadToggle: () => void;
@@ -66,12 +67,12 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
                     clearSearch();
 
                     if (item.itemType === "folder") {
-                      router.push(`/repo/${item.id}`);
+                      router.push(PageRoutes.repositoryFolder(item.id));
                       return;
                     }
 
                     if (item.parentId) {
-                      router.push(`/repo/${item.parentId}`);
+                      router.push(PageRoutes.repositoryFolder(item.parentId));
                     }
                   }}
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-[#252729]"

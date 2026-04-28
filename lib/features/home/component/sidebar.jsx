@@ -2,49 +2,18 @@
 
 import Image from "next/image";
 import { FolderOpen, Clock, Star, Trash2, Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
+import { PageRoutes } from "@/lib/cores/utils/navigation";
 
 export default function Sidebar({
   activeItem,
   onUploadFiles,
   onCreateFolder,
   onNavigate,
+  navItems,
 }) {
   const router = useRouter();
-
-  const navItems = [
-    {
-      icon: FolderOpen,
-      label: "My Repository",
-      id: "repository",
-      onTap: () => {},
-    },
-    {
-      icon: Clock,
-      label: "Recent",
-      id: "recent",
-      onTap: async () => {
-        await router.push("/repo/recent");
-      },
-    },
-    {
-      icon: Star,
-      label: "Favourites",
-      id: "favourites",
-      onTap: async () => {
-        await router.push("/repo/favourites");
-      },
-    },
-    {
-      icon: Trash2,
-      label: "Trash",
-      id: "trash",
-      onTap: async () => {
-        await router.push("/repo/trash");
-      },
-    },
-  ];
 
   const buttonItems = [
     {
@@ -76,7 +45,7 @@ export default function Sidebar({
       label: "Word",
       iconRoute: "/assets/icons/Word_Icon.svg",
       onClick: () => {
-        router.push("/repo/word");
+        router.push(PageRoutes.repositoryWord);
       },
     },
     {

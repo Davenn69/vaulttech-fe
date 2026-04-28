@@ -7,6 +7,7 @@ import { AxiosError } from "axios";
 import toast from "react-hot-toast";
 import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import { supabase } from "@/lib/cores/utils/supabase";
+import { folderStorage } from "@/lib/cores/utils/local";
 
 export function useLogin() {
   const router = useRouter();
@@ -43,6 +44,7 @@ export function useLogin() {
       console.log(response);
       toast.success(response.message);
       const folderId = response.data.initialFolder;
+      folderStorage.setParentFolderId(folderId);
       router.replace(`/repo/${folderId}`);
     },
     onError: (error: AxiosError<ApiResponseError>) => {

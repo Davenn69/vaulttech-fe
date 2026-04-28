@@ -4,7 +4,7 @@ import Topbar from "@/lib/features/home/component/topbar";
 import React, { useEffect, useState } from "react";
 import { FileUploader } from "./file_uploader";
 import { useMultiFileUpload } from "../hooks/useFileUpload";
-import { useParams } from "next/navigation";
+import { useParams, usePathname } from "next/navigation";
 import {
   UploadRefreshProvider,
   useUploadRefresh,
@@ -18,9 +18,31 @@ import Sidebar from "./sidebar";
 import { useFolderList } from "../hooks/useFolderList";
 import InputModal from "./input_modal";
 import { useFileList } from "../hooks/useFileList";
+import { PageRoutes } from "@/lib/cores/utils/navigation";
+import { Clock, FolderOpen, Star, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+function getActiveNav(pathname: string) {
+  switch (pathname) {
+    case PageRoutes.repositoryRecent:
+      return "recent";
+    case PageRoutes.repositoryFavourites:
+      return "favourites";
+    case PageRoutes.repositoryTrash:
+      return "trash";
+  }
+
+  if (pathname === PageRoutes.repository || /^\/repo\/[^/]+$/.test(pathname)) {
+    return "repository";
+  }
+
+  return "";
+}
 
 function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   const params = useParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const folderId = Array.isArray(params.id) ? params.id[0] : (params.id ?? "");
 
   const { notifyUploadSuccess, refreshTick } = useUploadRefresh();
@@ -44,7 +66,9 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   const { uploadFolder, renameFolder, fetchFolders } =
     useFolderList(notifyUploadSuccess);
 
-  const [activeNav, setActiveNav] = useState("repository");
+  const [activeNav, setActiveNav] = useState<string>(() =>
+    getActiveNav(pathname),
+  );
   const [isUploadPanelOpen, setIsUploadPanelOpen] = useState(false);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const hasActiveUpload = upload.files.some(
@@ -62,11 +86,52 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
     fetchFolders(folderId);
   }, [fetchFolders, folderId, refreshTick]);
 
+  useEffect(() => {
+    setActiveNav(getActiveNav(pathname));
+  }, [pathname]);
+
+  const navItems = [
+    {
+      icon: FolderOpen,
+      label: "My Repository",
+      id: "repository",
+      onTap: async () => {
+        const page = await PageRoutes.repositoryRoot();
+        await router.push(page);
+      },
+    },
+    {
+      icon: Clock,
+      label: "Recent",
+      id: "recent",
+      onTap: async () => {
+        await router.push(PageRoutes.repositoryRecent);
+      },
+    },
+    {
+      icon: Star,
+      label: "Favourites",
+      id: "favourites",
+      onTap: async () => {
+        await router.push(PageRoutes.repositoryFavourites);
+      },
+    },
+    {
+      icon: Trash2,
+      label: "Trash",
+      id: "trash",
+      onTap: async () => {
+        await router.push(PageRoutes.repositoryTrash);
+      },
+    },
+  ];
+
   return (
     <CurrentDirectoryProvider>
       <div className="flex relative">
         <div className="flex h-screen w-full overflow-hidden bg-[#111213] text-[#e8e9ea]">
           <Sidebar
+            navItems={navItems}
             activeItem={activeNav}
             onNavigate={setActiveNav}
             onUploadFiles={upload.addAndUploadFiles}

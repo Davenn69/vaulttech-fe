@@ -130,11 +130,11 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     },
                   },
                 ]}
-              onTap={() => {
-                pushDirectory(folder);
-                router.push(PageRoutes.repositoryFolder(folder.id));
-              }}
-            />
+                onTap={() => {
+                  pushDirectory(folder);
+                  router.push(PageRoutes.repositoryFolder(folder.id));
+                }}
+              />
             </div>
           ))}
         </div>
@@ -152,20 +152,23 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     label: "Open",
                     danger: false,
                     onTap: () => {
-                    console.log(file);
-                    switch (file.extension) {
-                      case "word":
-                        router.push(PageRoutes.wordFile(file.id));
-                        break;
-                      case "excel":
-                      case "pdf":
-                        router.push(PageRoutes.pdfFile(file.id));
-                        break;
-                      default:
-                        break;
-                    }
+                      console.log(file);
+                      console.log(file.extension);
+                      switch (file.extension) {
+                        case "docx":
+                          router.push(PageRoutes.wordFile(file.id));
+                          break;
+                        case "xlsx":
+                          router.push(PageRoutes.excelFile(file.id));
+                          break;
+                        case "pdf":
+                          router.push(PageRoutes.pdfFile(file.id));
+                          break;
+                        default:
+                          break;
+                      }
+                    },
                   },
-                },
                   {
                     label: "Rename",
                     danger: false,

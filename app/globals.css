@@ -1,3 +1,5 @@
+@import "handsontable/styles/handsontable.css";
+@import "handsontable/styles/ht-theme-main.css";
 @import "tailwindcss";
 @plugin "tailwindcss-animate";
 

@@ -61,9 +61,10 @@ export default function TrashGrid() {
               isFavourite={file.isFavourite}
               name={file.name}
               extension={file.extension}
+              isDisabled
               menuItems={[
                 {
-                  label: "restore",
+                  label: "Restore",
                   danger: false,
                   onTap: () => {
                     restoreFile(file.id);

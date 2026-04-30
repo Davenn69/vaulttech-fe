@@ -21,7 +21,8 @@ type FileCardType = {
   extension: string;
   menuItems: MenuItemType[];
   isFavourite?: boolean;
-  onTap: () => void;
+  isDisabled?: boolean;
+  onTap?: () => void;
 };
 
 const FILE_ICON_BY_EXTENSION: Record<string, string> = {
@@ -46,6 +47,7 @@ export default function FileCard({
   extension,
   menuItems,
   isFavourite,
+  isDisabled,
   onTap,
 }: FileCardType) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -129,17 +131,30 @@ export default function FileCard({
   return (
     <div
       data-item-id={id}
-      className="
+      aria-disabled={isDisabled}
+      className={`
       group relative bg-[#1e2022] border border-[#222426] rounded-2xl
-      overflow-visible cursor-pointer
-      transition-all duration-150
-      hover:border-[#2a2c2e] hover:-translate-y-0.5
-      hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]
-    "
+      overflow-visible transition-all duration-150
+      ${
+        isDisabled
+          ? "cursor-default"
+          : "cursor-pointer hover:border-[#2a2c2e] hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]"
+      }
+    `}
     >
-      <div className="overflow-hidden rounded-2xl" onClick={() => onTap()}>
+      <div
+        className="overflow-hidden rounded-2xl"
+        onClick={() => {
+          if (isDisabled) return;
+          onTap?.();
+        }}
+      >
         {/* Preview */}
-        <div className="relative aspect-[4/3] bg-[#f5f6f7] flex items-center justify-center overflow-hidden">
+        <div
+          className={`relative aspect-[4/3] bg-[#f5f6f7] flex items-center justify-center overflow-hidden ${
+            isDisabled ? "" : "group-hover:bg-[#edf0f2]"
+          }`}
+        >
           {isFavourite && (
             <div
               className="
@@ -162,22 +177,23 @@ export default function FileCard({
             className="h-20 w-20 object-contain"
           />
 
-          {/* Hover overlay */}
-          <div
-            className="
-            absolute inset-0 bg-black/35 flex items-center justify-center
-            opacity-0 group-hover:opacity-100 transition-opacity duration-150
-          "
-          >
-            <button
+          {!isDisabled && (
+            <div
               className="
-              px-[18px] py-[7px] bg-white text-[#111] rounded-full
-              text-xs font-semibold transition-transform duration-100 hover:scale-105
+              absolute inset-0 bg-black/35 flex items-center justify-center
+              opacity-0 group-hover:opacity-100 transition-opacity duration-150
             "
             >
-              Open
-            </button>
-          </div>
+              <button
+                className="
+                px-[18px] py-[7px] bg-white text-[#111] rounded-full
+                text-xs font-semibold transition-transform duration-100 hover:scale-105
+              "
+              >
+                Open
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Meta */}

@@ -20,6 +20,7 @@ type FileCardType = {
   thumbnail?: string;
   menuItems: MenuItemType[];
   isFavourite?: boolean;
+  onTap: () => void;
 };
 
 export default function FileCard({
@@ -28,6 +29,7 @@ export default function FileCard({
   thumbnail,
   menuItems,
   isFavourite,
+  onTap,
 }: FileCardType) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -121,7 +123,7 @@ export default function FileCard({
       hover:shadow-[0_8px_24px_rgba(0,0,0,0.35)]
     "
     >
-      <div className="overflow-hidden rounded-2xl">
+      <div className="overflow-hidden rounded-2xl" onClick={() => onTap()}>
         {/* Preview */}
         <div className="relative aspect-[4/3] bg-[#f5f6f7] flex items-center justify-center overflow-hidden">
           {isFavourite && (

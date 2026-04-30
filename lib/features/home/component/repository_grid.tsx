@@ -30,6 +30,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
     fetchFiles,
     deleteFile,
     addFileToFavourite,
+    removeFileFromFavourites,
     downloadFile,
   } = useFileList(notifyUploadSuccess);
   const {
@@ -38,6 +39,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
     fetchFolders,
     deleteFolder,
     addFolderToFavourite,
+    removeFolderFromFavourites,
   } = useFolderList(notifyUploadSuccess);
 
   useEffect(() => {
@@ -96,6 +98,22 @@ export default function RepositoryGrid({ id }: { id: string }) {
     });
   }, [files, folderList]);
 
+  function openFile(extension: string, id: string) {
+    switch (extension) {
+      case "docx":
+        router.push(PageRoutes.wordFile(id));
+        break;
+      case "xlsx":
+        router.push(PageRoutes.excelFile(id));
+        break;
+      case "pdf":
+        router.push(PageRoutes.pdfFile(id));
+        break;
+      default:
+        break;
+    }
+  }
+
   return (
     <PageWrapper isLoading={fileLoading && folderLoading}>
       <main
@@ -118,9 +136,17 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     onTap: () => openUpdateFolderModal(folder.id, folder.name),
                   },
                   {
-                    label: "Add to Favourites",
+                    label: folder.isFavourite
+                      ? "Remove from Favourites"
+                      : "Add to Favourites",
                     danger: false,
-                    onTap: () => addFolderToFavourite(folder.id),
+                    onTap: () => {
+                      if (folder.isFavourite) {
+                        removeFolderFromFavourites(folder.id);
+                      } else {
+                        addFolderToFavourite(folder.id);
+                      }
+                    },
                   },
                   {
                     label: "Move to Trash",
@@ -144,6 +170,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
           {files.map((file) => (
             <div key={file.id} data-item-id={file.id}>
               <FileCard
+                onTap={() => openFile(file.extension, file.id)}
                 isFavourite={file.isFavourite}
                 name={file.name}
                 id={file.id}
@@ -152,21 +179,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     label: "Open",
                     danger: false,
                     onTap: () => {
-                      console.log(file);
-                      console.log(file.extension);
-                      switch (file.extension) {
-                        case "docx":
-                          router.push(PageRoutes.wordFile(file.id));
-                          break;
-                        case "xlsx":
-                          router.push(PageRoutes.excelFile(file.id));
-                          break;
-                        case "pdf":
-                          router.push(PageRoutes.pdfFile(file.id));
-                          break;
-                        default:
-                          break;
-                      }
+                      openFile(file.extension, file.id);
                     },
                   },
                   {
@@ -175,9 +188,17 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     onTap: () => openUpdateFileModal(file.id, file.name),
                   },
                   {
-                    label: "Add to Favourites",
+                    label: file.isFavourite
+                      ? "Remove from Favourites"
+                      : "Add to Favourites",
                     danger: false,
-                    onTap: () => addFileToFavourite(file.id),
+                    onTap: () => {
+                      if (file.isFavourite) {
+                        removeFileFromFavourites(file.id);
+                      } else {
+                        addFileToFavourite(file.id);
+                      }
+                    },
                   },
                   {
                     label: "Download",

@@ -60,7 +60,7 @@ export default function TrashGrid() {
               key={file.id}
               isFavourite={file.isFavourite}
               name={file.name}
-              thumbnail={undefined}
+              extension={file.extension}
               menuItems={[
                 {
                   label: "restore",

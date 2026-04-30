@@ -11,6 +11,7 @@ import { useUploadRefresh } from "../../home/context/upload_refresh_context";
 import { useFileList } from "../../home/hooks/useFileList";
 import { useFolderList } from "../../home/hooks/useFolderList";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
+import { openFile } from "@/lib/cores/utils/fileUtils";
 
 export default function FavouriteGrid() {
   const router = useRouter();
@@ -68,7 +69,6 @@ export default function FavouriteGrid() {
                 },
               ]}
               onTap={() => {
-                // pushDirectory(folder);
                 router.push(PageRoutes.repositoryFolder(folder.id));
               }}
             />
@@ -82,9 +82,14 @@ export default function FavouriteGrid() {
               key={file.id}
               isFavourite={file.isFavourite}
               name={file.name}
-              thumbnail={undefined}
+              extension={file.extension}
+              onTap={() => openFile(file.extension, file.id, router)}
               menuItems={[
-                { label: "Open", danger: false, onTap: () => {} },
+                {
+                  label: "Open",
+                  danger: false,
+                  onTap: () => openFile(file.extension, file.id, router),
+                },
                 {
                   label: "Rename",
                   danger: false,

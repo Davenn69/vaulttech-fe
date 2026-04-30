@@ -1,6 +1,7 @@
 "use client";
 
-import { MoreHorizontal, FileText, Star } from "lucide-react";
+import Image from "next/image";
+import { MoreHorizontal, Star } from "lucide-react";
 import { createPortal } from "react-dom";
 import {
   useEffect,
@@ -17,29 +18,41 @@ const useIsomorphicLayoutEffect =
 type FileCardType = {
   id?: string;
   name: string;
-  thumbnail?: string;
+  extension: string;
   menuItems: MenuItemType[];
   isFavourite?: boolean;
   onTap: () => void;
 };
 
+const FILE_ICON_BY_EXTENSION: Record<string, string> = {
+  doc: "/assets/icons/Word_Icon.svg",
+  docx: "/assets/icons/Word_Icon.svg",
+  xls: "/assets/icons/Excel_Icon.svg",
+  xlsx: "/assets/icons/Excel_Icon.svg",
+  pdf: "/assets/icons/Pdf_Icon.svg",
+};
+
+function getFileIcon(extension: string) {
+  const normalizedExtension = extension.toLowerCase().replaceAll(".", "");
+  return (
+    FILE_ICON_BY_EXTENSION[normalizedExtension] ??
+    "/assets/icons/Normal_File_Icon.svg"
+  );
+}
+
 export default function FileCard({
   id,
   name,
-  thumbnail,
+  extension,
   menuItems,
   isFavourite,
   onTap,
 }: FileCardType) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const mounted = typeof window !== "undefined";
 
   const updateMenuPosition = () => {
     const buttonEl = buttonRef.current;
@@ -115,6 +128,7 @@ export default function FileCard({
 
   return (
     <div
+      data-item-id={id}
       className="
       group relative bg-[#1e2022] border border-[#222426] rounded-2xl
       overflow-visible cursor-pointer
@@ -140,15 +154,13 @@ export default function FileCard({
             </div>
           )}
 
-          {thumbnail ? (
-            <img
-              src={thumbnail}
-              alt={name}
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <FileText size={28} className="text-[#c8cdd3]" />
-          )}
+          <Image
+            src={getFileIcon(extension)}
+            alt={`${name} preview`}
+            width={88}
+            height={88}
+            className="h-20 w-20 object-contain"
+          />
 
           {/* Hover overlay */}
           <div

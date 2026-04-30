@@ -156,6 +156,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
                 isFavourite={file.isFavourite}
                 name={file.name}
                 id={file.id}
+                extension={file.extension}
                 menuItems={[
                   {
                     label: "Open",
@@ -195,7 +196,6 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     onTap: () => deleteFile(file.id),
                   },
                 ]}
-                thumbnail={undefined}
               />
             </div>
           ))}

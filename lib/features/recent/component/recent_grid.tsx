@@ -118,6 +118,7 @@ export default function RecentGrid() {
                       key={item.id}
                       isFavourite={item.isFavourite}
                       name={item.name}
+                      extension={item.extension}
                       onTap={() => {
                         openFile(item.extension, item.id, router);
                       }}

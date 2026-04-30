@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { useCurrentDirectory } from "../context/current_directory_context";
 import ItemManager, { DraggableItemModel } from "../types/itemManager";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
+import { openFile } from "@/lib/cores/utils/fileUtils";
 
 export default function RepositoryGrid({ id }: { id: string }) {
   const router = useRouter();
@@ -98,22 +99,6 @@ export default function RepositoryGrid({ id }: { id: string }) {
     });
   }, [files, folderList]);
 
-  function openFile(extension: string, id: string) {
-    switch (extension) {
-      case "docx":
-        router.push(PageRoutes.wordFile(id));
-        break;
-      case "xlsx":
-        router.push(PageRoutes.excelFile(id));
-        break;
-      case "pdf":
-        router.push(PageRoutes.pdfFile(id));
-        break;
-      default:
-        break;
-    }
-  }
-
   return (
     <PageWrapper isLoading={fileLoading && folderLoading}>
       <main
@@ -170,7 +155,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
           {files.map((file) => (
             <div key={file.id} data-item-id={file.id}>
               <FileCard
-                onTap={() => openFile(file.extension, file.id)}
+                onTap={() => openFile(file.extension, file.id, router)}
                 isFavourite={file.isFavourite}
                 name={file.name}
                 id={file.id}
@@ -179,7 +164,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     label: "Open",
                     danger: false,
                     onTap: () => {
-                      openFile(file.extension, file.id);
+                      openFile(file.extension, file.id, router);
                     },
                   },
                   {

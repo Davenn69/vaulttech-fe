@@ -6,7 +6,7 @@ import { MenuItemType } from "../types/menu_item_type";
 
 type FolderChipType = {
   name: string;
-  onTap?: () => void;
+  onTap: () => void;
   menuItems: MenuItemType[];
   isFavourite?: boolean;
 };
@@ -35,8 +35,8 @@ export default function FolderChip({
 
   return (
     <div
-      role={onTap ? "button" : undefined}
-      tabIndex={onTap ? 0 : undefined}
+      role="button"
+      tabIndex={0}
       onClick={onTap}
       onKeyDown={(event) => {
         if (!onTap) return;

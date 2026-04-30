@@ -9,6 +9,9 @@ import { useFolderModal } from "../../home/context/folder_modal_context";
 import { useUploadRefresh } from "../../home/context/upload_refresh_context";
 import { useFileList } from "../../home/hooks/useFileList";
 import { useFolderList } from "../../home/hooks/useFolderList";
+import { openFile } from "@/lib/cores/utils/fileUtils";
+import { useRouter } from "next/navigation";
+import { PageRoutes } from "@/lib/cores/utils/navigation";
 
 function formatGroupDate(dateValue: string) {
   const isoDateMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -35,13 +38,18 @@ function formatGroupDate(dateValue: string) {
 }
 
 export default function RecentGrid() {
+  const router = useRouter();
   const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
   const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
 
   //API - related
-  const { deleteFile, addFileToFavourite, downloadFile } =
-    useFileList(notifyUploadSuccess);
-  const { deleteFolder, addFolderToFavourite } =
+  const {
+    deleteFile,
+    addFileToFavourite,
+    downloadFile,
+    removeFileFromFavourites,
+  } = useFileList(notifyUploadSuccess);
+  const { deleteFolder, addFolderToFavourite, removeFolderFromFavourites } =
     useFolderList(notifyUploadSuccess);
 
   const { recent, loading, fetchRecent } = useRecent();
@@ -52,7 +60,7 @@ export default function RecentGrid() {
 
   return (
     <PageWrapper isLoading={loading}>
-      <main className="flex w-full flex-1 flex-col gap-6 overflow-y-auto px-6 pt-6 pb-10">
+      <main className="flex w-full flex-1 flex-col gap-6 overflow-y-auto px-6 pt-6 pb-10 mb-20">
         {recent.map((group) => (
           <section key={group.date} className="space-y-3">
             <h2 className="text-sm font-semibold text-zinc-400">
@@ -61,12 +69,15 @@ export default function RecentGrid() {
 
             <div className="space-y-4">
               <div>
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                   {group.folder.map((item) => (
                     <FolderChip
                       key={item.id}
                       isFavourite={item.isFavourite}
                       name={item.name}
+                      onTap={() =>
+                        router.push(PageRoutes.repositoryFolder(item.id))
+                      }
                       menuItems={[
                         {
                           label: "Rename",
@@ -75,9 +86,17 @@ export default function RecentGrid() {
                             openUpdateFolderModal(item.id, item.name),
                         },
                         {
-                          label: "Add to Favourites",
+                          label: item.isFavourite
+                            ? "Remove from Favourites"
+                            : "Add to Favourites",
                           danger: false,
-                          onTap: () => addFolderToFavourite(item.id),
+                          onTap: () => {
+                            if (item.isFavourite) {
+                              removeFolderFromFavourites(item.id);
+                            } else {
+                              addFolderToFavourite(item.id);
+                            }
+                          },
                         },
                         {
                           label: "Move to Trash",
@@ -93,23 +112,40 @@ export default function RecentGrid() {
               </div>
 
               <div>
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {group.file.map((item) => (
                     <FileCard
                       key={item.id}
                       isFavourite={item.isFavourite}
                       name={item.name}
+                      onTap={() => {
+                        openFile(item.extension, item.id, router);
+                      }}
                       menuItems={[
-                        { label: "Open", danger: false, onTap: () => {} },
+                        {
+                          label: "Open",
+                          danger: false,
+                          onTap: () => {
+                            openFile(item.extension, item.id, router);
+                          },
+                        },
                         {
                           label: "Rename",
                           danger: false,
                           onTap: () => openUpdateFileModal(item.id, item.name),
                         },
                         {
-                          label: "Add to Favourites",
+                          label: item.isFavourite
+                            ? "Remove from Favourites"
+                            : "Add to Favourites",
                           danger: false,
-                          onTap: () => addFileToFavourite(item.id),
+                          onTap: () => {
+                            if (item.isFavourite) {
+                              removeFileFromFavourites(item.id);
+                            } else {
+                              addFileToFavourite(item.id);
+                            }
+                          },
                         },
                         {
                           label: "Download",

@@ -9,7 +9,6 @@ import PageWrapper from "@/lib/cores/components/page_wrapper";
 import FolderChip from "@/lib/cores/components/folder_chip";
 import FileCard from "@/lib/cores/components/file_card";
 import { useRouter } from "next/navigation";
-import { useCurrentDirectory } from "../context/current_directory_context";
 import ItemManager, { DraggableItemModel } from "../types/itemManager";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
 import { openFile } from "@/lib/cores/utils/fileUtils";
@@ -19,7 +18,6 @@ export default function RepositoryGrid({ id }: { id: string }) {
 
   const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
   const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
-  const { pushDirectory } = useCurrentDirectory();
 
   const gridRef = useRef<HTMLDivElement | null>(null);
   const itemManagerRef = useRef<ItemManager | null>(null);
@@ -142,7 +140,6 @@ export default function RepositoryGrid({ id }: { id: string }) {
                   },
                 ]}
                 onTap={() => {
-                  pushDirectory(folder);
                   router.push(PageRoutes.repositoryFolder(folder.id));
                 }}
               />

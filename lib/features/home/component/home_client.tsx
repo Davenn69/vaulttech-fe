@@ -61,7 +61,8 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
     folderId,
     notifyUploadSuccess,
   );
-  const { renameFile, fetchFiles } = useFileList(notifyUploadSuccess);
+  const { renameFile, fetchFiles, createWordFile } =
+    useFileList(notifyUploadSuccess);
   const { uploadFolder, renameFolder, fetchFolders } =
     useFolderList(notifyUploadSuccess);
 
@@ -134,6 +135,7 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
           onNavigate={setActiveNav}
           onUploadFiles={upload.addAndUploadFiles}
           onCreateFolder={() => setShowCreateFolder(true)}
+          onCreateWordFile={() => createWordFile(folderId)}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Topbar

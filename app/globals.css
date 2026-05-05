@@ -19,3 +19,50 @@
   --color-error2: #ff2147;
   --color-success: #33c481;
 }
+
+.ProseMirror {
+  outline: none;
+}
+
+.ProseMirror h1 {
+  font-size: xx-large;
+}
+
+.ProseMirror h2 {
+  font-size: x-large;
+}
+
+.ProseMirror h3 {
+  font-size: large;
+}
+
+.ProseMirror ul,
+.ProseMirror ol {
+  margin: 0 0 0 1.5rem;
+  padding: 0 0 0 1.25rem;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+}
+
+.ProseMirror li {
+  margin: 0.15rem 0;
+}
+
+.ProseMirror li > p {
+  margin: 0;
+}
+
+.word-code-block {
+  border-radius: 0.75rem;
+  padding: 0.9rem 1rem;
+  background: #0f1012;
+  color: #e8e9ea;
+  font-family: Consolas, "Liberation Mono", monospace;
+  overflow-x: auto;
+}

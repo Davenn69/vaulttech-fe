@@ -7,10 +7,14 @@ import {
   RotateCcw,
   Search,
   User,
+  LogOut,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { useSearch } from "../hooks/useSearch";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
+import { supabase } from "@/lib/cores/utils/supabase";
+import { folderStorage } from "@/lib/cores/utils/local";
 
 type TopbarType = {
   onUploadToggle: () => void;
@@ -18,13 +22,56 @@ type TopbarType = {
 
 export default function Topbar({ onUploadToggle }: TopbarType) {
   const router = useRouter();
-  const { query, setQuery, results, loading, clearSearch } = useSearch();
+  const { query, setQuery, results, loading } = useSearch();
   const hasQuery = query.trim().length > 0;
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const searchRef = useRef<HTMLDivElement | null>(null);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!hasQuery) return undefined;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+
+      if (searchRef.current && !searchRef.current.contains(target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [hasQuery]);
+
+  useEffect(() => {
+    if (!isUserMenuOpen) return undefined;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+
+      if (userMenuRef.current && !userMenuRef.current.contains(target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [isUserMenuOpen]);
+
+  const handleLogout = async () => {
+    setIsUserMenuOpen(false);
+    await supabase.auth.signOut();
+    folderStorage.clearParentFolderId();
+    router.replace("/auth/login");
+  };
 
   return (
     <header className="relative flex items-center gap-3 border-b border-[#222426] bg-[#111213] px-6 py-4">
       {/* Search */}
-      <div className="relative flex flex-1 items-center">
+      <div ref={searchRef} className="relative flex flex-1 items-center">
         <Search
           size={15}
           className="pointer-events-none absolute left-3 text-[#4a4d52]"
@@ -32,7 +79,14 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
         <input
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            const nextValue = e.target.value;
+            setQuery(nextValue);
+            setIsDropdownOpen(nextValue.trim().length > 0);
+          }}
+          onFocus={() => {
+            if (hasQuery) setIsDropdownOpen(true);
+          }}
           placeholder="Search files and folders..."
           className="
             w-full rounded-xl border border-[#2a2c2e] bg-[#1a1b1d]
@@ -43,7 +97,7 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
           "
         />
 
-        {hasQuery && (
+        {hasQuery && isDropdownOpen && (
           <div className="absolute left-0 top-[calc(100%+8px)] z-50 w-full overflow-hidden rounded-2xl border border-[#2a2c2e] bg-[#1a1b1d] shadow-[0_16px_40px_rgba(0,0,0,0.45)]">
             <div className="max-h-[320px] overflow-y-auto p-2">
               {loading && (
@@ -64,15 +118,15 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
                   key={item.id}
                   type="button"
                   onClick={() => {
-                    clearSearch();
-
                     if (item.itemType === "folder") {
                       router.push(PageRoutes.repositoryFolder(item.id));
+                      setIsDropdownOpen(false);
                       return;
                     }
 
                     if (item.parentId) {
                       router.push(PageRoutes.repositoryFolder(item.parentId));
+                      setIsDropdownOpen(false);
                     }
                   }}
                   className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left transition-colors hover:bg-[#252729]"
@@ -119,6 +173,7 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
         </button>
 
         <button
+          onClick={() => setIsUserMenuOpen((prev) => !prev)}
           className="
             flex h-9 w-9 items-center justify-center rounded-xl
             border border-[#2a2c2e] bg-[#1a1b1d]
@@ -128,6 +183,29 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
         >
           <User size={16} />
         </button>
+
+        {isUserMenuOpen && (
+          <div
+            ref={userMenuRef}
+            className="
+              absolute right-6 top-[calc(100%+8px)] z-50 w-44 overflow-hidden
+              rounded-2xl border border-[#2a2c2e] bg-[#1a1b1d]
+              shadow-[0_16px_40px_rgba(0,0,0,0.45)]
+            "
+          >
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="
+                flex w-full items-center gap-2 px-4 py-3 text-left text-sm
+                text-[#e8e9ea] transition-colors hover:bg-[#252729]
+              "
+            >
+              <LogOut size={16} className="text-[#fd7c5a]" />
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -286,6 +286,9 @@ export default function WordEditor({ id }: { id: string }) {
       onUpdate: () => {
         setEditorTick((current) => current + 1);
       },
+      onSelectionUpdate: () => {
+        setEditorTick((current) => current + 1);
+      },
     },
     [content],
   );
@@ -310,10 +313,34 @@ export default function WordEditor({ id }: { id: string }) {
     characters: plainText.length,
   };
 
+  const getInlineMarkState = (markName: string) => {
+    if (!editor) return false;
+
+    const { selection, storedMarks } = editor.state;
+
+    if (selection.empty) {
+      const activeMarks = storedMarks ?? selection.$from.marks();
+      return activeMarks.some((mark) => mark.type.name === markName);
+    }
+
+    return editor.isActive(markName);
+  };
+
+  const getBlockState = (
+    name: "heading" | "bulletList" | "orderedList" | "blockquote" | "codeBlock",
+    attributes?: Record<string, unknown>,
+  ) => {
+    if (!editor) return false;
+
+    return editor.isActive(name, attributes);
+  };
+
   const syncCurrentDraft = async () => {
     if (!editor) return;
 
     const nextContent = editor.getJSON();
+
+    console.log(nextContent);
 
     try {
       await saveContent(id, nextContent);
@@ -345,6 +372,22 @@ export default function WordEditor({ id }: { id: string }) {
 
   const setHeading = (level: 1 | 2 | 3) => {
     editor?.chain().focus().toggleHeading({ level }).run();
+  };
+
+  const toggleBulletList = () => {
+    editor?.chain().focus().toggleBulletList().run();
+  };
+
+  const toggleOrderedList = () => {
+    editor?.chain().focus().toggleOrderedList().run();
+  };
+
+  const toggleBlockquote = () => {
+    editor?.chain().focus().toggleBlockquote().run();
+  };
+
+  const toggleCodeBlock = () => {
+    editor?.chain().focus().toggleCodeBlock().run();
   };
 
   const toggleLink = () => {
@@ -379,9 +422,6 @@ export default function WordEditor({ id }: { id: string }) {
         <section className="flex min-w-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#222426] bg-[#121315] px-5 py-4">
             <div className="min-w-0">
-              <p className="text-xs uppercase tracking-[0.24em] text-[#7a7d82]">
-                Document from backend
-              </p>
               <h1 className="mt-2 text-2xl font-semibold text-[#f5f6f7]">
                 Word editor
               </h1>
@@ -411,25 +451,25 @@ export default function WordEditor({ id }: { id: string }) {
           <div className="border-b border-[#222426] bg-[#111213] px-4 py-3">
             <div className="flex flex-wrap items-center gap-2">
               <ToolbarButton
-                active={editor?.isActive("bold")}
+                active={getInlineMarkState("bold")}
                 onClick={() => editor?.chain().focus().toggleBold().run()}
                 icon={Bold}
                 label="Bold"
               />
               <ToolbarButton
-                active={editor?.isActive("italic")}
+                active={getInlineMarkState("italic")}
                 onClick={() => editor?.chain().focus().toggleItalic().run()}
                 icon={Italic}
                 label="Italic"
               />
               <ToolbarButton
-                active={editor?.isActive("underline")}
+                active={getInlineMarkState("underline")}
                 onClick={() => editor?.chain().focus().toggleUnderline().run()}
                 icon={UnderlineIcon}
                 label="Underline"
               />
               <ToolbarButton
-                active={editor?.isActive("strike")}
+                active={getInlineMarkState("strike")}
                 onClick={() => editor?.chain().focus().toggleStrike().run()}
                 icon={Strikethrough}
                 label="Strikethrough"
@@ -438,51 +478,49 @@ export default function WordEditor({ id }: { id: string }) {
               <div className="mx-1 h-8 w-px bg-[#222426]" />
 
               <ToolbarButton
-                active={editor?.isActive("heading", { level: 1 })}
+                active={getBlockState("heading", { level: 1 })}
                 onClick={() => setHeading(1)}
                 icon={Heading1}
                 label="Heading 1"
               />
               <ToolbarButton
-                active={editor?.isActive("heading", { level: 2 })}
+                active={getBlockState("heading", { level: 2 })}
                 onClick={() => setHeading(2)}
                 icon={Heading2}
                 label="Heading 2"
               />
               <ToolbarButton
-                active={editor?.isActive("heading", { level: 3 })}
+                active={getBlockState("heading", { level: 3 })}
                 onClick={() => setHeading(3)}
                 icon={Heading3}
                 label="Heading 3"
               />
               <ToolbarButton
-                active={editor?.isActive("bulletList")}
-                onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                active={getBlockState("bulletList")}
+                onClick={toggleBulletList}
                 icon={List}
                 label="Bullets"
               />
               <ToolbarButton
-                active={editor?.isActive("orderedList")}
-                onClick={() =>
-                  editor?.chain().focus().toggleOrderedList().run()
-                }
+                active={getBlockState("orderedList")}
+                onClick={toggleOrderedList}
                 icon={ListOrdered}
                 label="Numbered"
               />
               <ToolbarButton
-                active={editor?.isActive("blockquote")}
-                onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+                active={getBlockState("blockquote")}
+                onClick={toggleBlockquote}
                 icon={Quote}
                 label="Quote"
               />
               <ToolbarButton
-                active={editor?.isActive("codeBlock")}
-                onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+                active={getBlockState("codeBlock")}
+                onClick={toggleCodeBlock}
                 icon={Code}
                 label="Code block"
               />
               <ToolbarButton
-                active={editor?.isActive("link")}
+                active={getInlineMarkState("link")}
                 onClick={toggleLink}
                 icon={Link2}
                 label="Link"
@@ -568,6 +606,7 @@ function ToolbarButton({
   return (
     <button
       type="button"
+      onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
       title={label}
       className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm transition-colors ${

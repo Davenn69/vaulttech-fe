@@ -4,8 +4,11 @@ import { useCallback, useState } from "react";
 import toast from "react-hot-toast";
 import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import axios from "axios";
+import { useRouter } from "next/navigation";
+import { PageRoutes } from "@/lib/cores/utils/navigation";
 
 export function useFileList(onUploadSuccess?: () => void) {
+  const router = useRouter();
   const [files, setFiles] = useState<FileModel[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -162,6 +165,32 @@ export function useFileList(onUploadSuccess?: () => void) {
     [onUploadSuccess],
   );
 
+  const createWordFile = useCallback(
+    async (id: string) => {
+      setLoading(true);
+
+      try {
+        const res = await api.post<ApiResponse<FileModel>>(`/word/create`, {
+          folderId: id,
+        });
+
+        toast.success(res.message);
+        onUploadSuccess?.();
+
+        router.push(PageRoutes.wordFile(res.data.id));
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to add to favourites";
+
+        toast.error(message ?? "Failed to add to favourites");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onUploadSuccess],
+  );
+
   return {
     files,
     loading,
@@ -171,5 +200,6 @@ export function useFileList(onUploadSuccess?: () => void) {
     removeFileFromFavourites,
     deleteFile,
     downloadFile,
+    createWordFile,
   };
 }

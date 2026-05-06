@@ -191,6 +191,13 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     },
                   },
                   {
+                    label: "History",
+                    danger: false,
+                    onTap: () => {
+                      router.push(PageRoutes.recordFile(file.id));
+                    },
+                  },
+                  {
                     label: "Delete",
                     danger: true,
                     onTap: () => deleteFile(file.id),

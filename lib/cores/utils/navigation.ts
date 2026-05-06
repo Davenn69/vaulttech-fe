@@ -23,6 +23,10 @@ export class PageRoutes {
     return `/pdf/${id}`;
   }
 
+  static recordFile(id: string) {
+    return `/record/${id}`;
+  }
+
   static excelFile(id: string) {
     return `/excel/${id}`;
   }

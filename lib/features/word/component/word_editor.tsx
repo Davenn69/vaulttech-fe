@@ -251,9 +251,31 @@ function normalizeEditorContent(raw?: JSONContent | string): JSONContent {
 }
 
 export default function WordEditor({ id }: { id: string }) {
-  const { loading, saving, content, saveContent } = useWord(id);
+  const { loading, saving, content, fileName, saveContent, renameFile } =
+    useWord(id);
+  const [documentName, setDocumentName] = useState("Document");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const previousNameRef = useRef("Document");
   const [, setEditorTick] = useState(0);
   const lastAppliedRemoteContentRef = useRef<string | undefined>("");
+  const activeDocumentName = fileName ?? documentName;
+
+  useEffect(() => {
+    if (!fileName) return;
+
+    setDocumentName(fileName);
+    previousNameRef.current = fileName;
+    document.title = `${fileName} - Word editor`;
+  }, [fileName]);
+
+  useEffect(() => {
+    if (!isEditingName) return;
+
+    nameInputRef.current?.focus();
+    nameInputRef.current?.select();
+  }, [isEditingName]);
 
   const editor = useEditor(
     {
@@ -304,7 +326,7 @@ export default function WordEditor({ id }: { id: string }) {
     if (lastAppliedRemoteContentRef.current === contentSignature) return;
 
     lastAppliedRemoteContentRef.current = contentSignature;
-    editor.commands.setContent(nextContent, false);
+    editor.commands.setContent(nextContent);
   }, [content, editor]);
 
   const plainText = editor?.getText() ?? "";
@@ -340,8 +362,6 @@ export default function WordEditor({ id }: { id: string }) {
 
     const nextContent = editor.getJSON();
 
-    console.log(nextContent);
-
     try {
       await saveContent(id, nextContent);
       toast.success("Document saved");
@@ -350,13 +370,43 @@ export default function WordEditor({ id }: { id: string }) {
     }
   };
 
+  const renameCurrentFile = async (nextName: string) => {
+    if (!id || renaming) return;
+
+    const trimmedName = nextName.trim();
+
+    if (!trimmedName) {
+      toast.error("Nama file tidak boleh kosong");
+      return;
+    }
+
+    setRenaming(true);
+
+    try {
+      await renameFile(id, trimmedName);
+      setDocumentName(trimmedName);
+      previousNameRef.current = trimmedName;
+      document.title = `${trimmedName} - Word editor`;
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const submitRename = async () => {
+    setIsEditingName(false);
+
+    if (documentName === previousNameRef.current) return;
+
+    await renameCurrentFile(documentName);
+  };
+
   const downloadAsWord = () => {
     if (!editor) return;
 
-    const nextTitle = "Document";
+    const nextTitle = activeDocumentName;
     const rtf = toRtfDocument(nextTitle, editor.getJSON());
     const blob = new Blob([rtf], { type: "application/rtf" });
-    const fileName = "document.rtf";
+    const fileName = `${nextTitle.replace(/[\\/:*?"<>|]+/g, "-").trim() || "document"}.rtf`;
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement("a");
@@ -421,10 +471,45 @@ export default function WordEditor({ id }: { id: string }) {
       >
         <section className="flex min-w-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#222426] bg-[#121315] px-5 py-4">
-            <div className="min-w-0">
-              <h1 className="mt-2 text-2xl font-semibold text-[#f5f6f7]">
-                Word editor
-              </h1>
+            <div className="min-w-0 flex-1">
+              {isEditingName ? (
+                <input
+                  ref={nameInputRef}
+                  value={documentName}
+                  onChange={(event) => setDocumentName(event.target.value)}
+                  onBlur={() => submitRename()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      submitRename();
+                      return;
+                    }
+
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      setDocumentName(previousNameRef.current);
+                      setIsEditingName(false);
+                    }
+                  }}
+                  disabled={renaming}
+                  className="mt-2 w-full bg-transparent text-2xl font-semibold text-[#f5f6f7] outline-none placeholder:text-[#7a7d82] disabled:opacity-60"
+                  placeholder="Nama file"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    previousNameRef.current = activeDocumentName;
+                    setIsEditingName(true);
+                  }}
+                  className="mt-2 block w-full min-w-0 text-left"
+                  title="Klik untuk ubah nama file"
+                >
+                  <h1 className="truncate text-2xl font-semibold text-[#f5f6f7] transition-colors hover:text-white">
+                    {activeDocumentName}
+                  </h1>
+                </button>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">

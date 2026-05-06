@@ -15,6 +15,7 @@ import { useSearch } from "../hooks/useSearch";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
 import { supabase } from "@/lib/cores/utils/supabase";
 import { folderStorage } from "@/lib/cores/utils/local";
+import { openFile } from "@/lib/cores/utils/fileUtils";
 
 type TopbarType = {
   onUploadToggle: () => void;
@@ -124,6 +125,10 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
                       return;
                     }
 
+                    if (item.itemType === "file") {
+                      openFile(item.extension!, item.id, router);
+                    }
+
                     if (item.parentId) {
                       router.push(PageRoutes.repositoryFolder(item.parentId));
                       setIsDropdownOpen(false);
@@ -148,9 +153,6 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
                         {item.itemType}
                       </span>
                     </div>
-                    <p className="truncate text-xs text-[#7a7d82]">
-                      {item.path || "/"}
-                    </p>
                   </div>
                 </button>
               ))}

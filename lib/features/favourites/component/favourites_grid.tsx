@@ -88,8 +88,8 @@ export default function FavouriteGrid() {
               isFavourite={file.isFavourite}
               name={file.name}
               extension={file.extension}
-              statusLabel={file.categoryName ?? undefined}
-              statusColor={file.categoryColor ?? undefined}
+              statusLabel={file.category?.name}
+              statusColor={file.category?.color}
               onTap={() => openFile(file.extension, file.id, router)}
               menuItems={[
                 {

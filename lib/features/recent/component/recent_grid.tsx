@@ -124,8 +124,8 @@ export default function RecentGrid() {
                       isFavourite={item.isFavourite}
                       name={item.name}
                       extension={item.extension}
-                      statusLabel={item.categoryName ?? undefined}
-                      statusColor={item.categoryColor ?? undefined}
+                      statusLabel={item.category?.name ?? undefined}
+                      statusColor={item.category?.color ?? undefined}
                       onTap={() => {
                         openFile(item.extension, item.id, router);
                       }}
@@ -191,7 +191,7 @@ export default function RecentGrid() {
               </div>
             </div>
           </section>
-          ))}
+        ))}
 
         <CategorySelectMenu
           open={selectedFileForCategory !== null}

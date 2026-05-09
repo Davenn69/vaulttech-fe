@@ -59,6 +59,8 @@ export default function FileCard({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const mounted = typeof window !== "undefined";
+  const resolvedStatusLabel = statusLabel ?? "No Category";
+  const resolvedStatusColor = statusColor ?? "#64748b";
 
   const updateMenuPosition = () => {
     const buttonEl = buttonRef.current;
@@ -159,29 +161,21 @@ export default function FileCard({
             isDisabled ? "" : "group-hover:bg-[#edf0f2]"
           }`}
         >
-          {isFavourite && (
-            <div
-              className="
-                absolute right-2 top-10 z-10 inline-flex items-center gap-1
-                rounded-full bg-[#1a1b1d]/85
-                px-2 py-2 text-[11px] font-medium text-[#f1c84c]
-                shadow-[0_4px_14px_rgba(0,0,0,0.28)]
-                backdrop-blur-sm
-              "
-            >
-              <Star size={11} className="fill-current" />
-            </div>
-          )}
-
-          {statusColor && (
-            <div className="absolute right-2 top-2 z-10 inline-flex items-center gap-2 rounded-full bg-[#1a1b1d]/85 px-2.5 py-1 text-[11px] font-medium text-[#f1f3f5] shadow-[0_4px_14px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+          <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#1a1b1d]/85 px-2.5 py-1 text-[11px] font-medium text-[#f1f3f5] shadow-[0_4px_14px_rgba(0,0,0,0.28)] backdrop-blur-sm">
               <span
                 className="h-2.5 w-2.5 rounded-full border border-white/25"
-                style={{ backgroundColor: statusColor }}
+                style={{ backgroundColor: resolvedStatusColor }}
               />
-              <span className="truncate">{statusLabel ?? "Status"}</span>
+              <span className="truncate">{resolvedStatusLabel}</span>
             </div>
-          )}
+
+            {isFavourite && (
+              <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#1a1b1d]/85 text-[#f1c84c] shadow-[0_4px_14px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+                <Star size={11} className="fill-current" />
+              </div>
+            )}
+          </div>
 
           <Image
             src={getFileIcon(extension)}

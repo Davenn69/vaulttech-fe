@@ -108,6 +108,13 @@ export default function FavouriteGrid() {
                   },
                 },
                 {
+                  label: "History",
+                  danger: false,
+                  onTap: () => {
+                    router.push(PageRoutes.recordFile(file.id));
+                  },
+                },
+                {
                   label: "Delete",
                   danger: true,
                   onTap: () => deleteFile(file.id),

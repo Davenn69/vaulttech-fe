@@ -156,6 +156,13 @@ export default function RecentGrid() {
                           },
                         },
                         {
+                          label: "History",
+                          danger: false,
+                          onTap: () => {
+                            router.push(PageRoutes.recordFile(item.id));
+                          },
+                        },
+                        {
                           label: "Delete",
                           danger: true,
                           onTap: () => deleteFile(item.id),

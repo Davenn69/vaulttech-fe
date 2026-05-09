@@ -1,7 +1,7 @@
 "use client";
 
 import PageWrapper from "@/lib/cores/components/page_wrapper";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import useRecent from "../hooks/useRecent";
 import FolderChip from "@/lib/cores/components/folder_chip";
 import FileCard from "@/lib/cores/components/file_card";
@@ -12,6 +12,7 @@ import { useFolderList } from "../../home/hooks/useFolderList";
 import { openFile } from "@/lib/cores/utils/fileUtils";
 import { useRouter } from "next/navigation";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
+import CategorySelectMenu from "../../category/component/category_select_menu";
 
 function formatGroupDate(dateValue: string) {
   const isoDateMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -39,6 +40,10 @@ function formatGroupDate(dateValue: string) {
 
 export default function RecentGrid() {
   const router = useRouter();
+  const [selectedFileForCategory, setSelectedFileForCategory] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
   const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
 
@@ -119,6 +124,8 @@ export default function RecentGrid() {
                       isFavourite={item.isFavourite}
                       name={item.name}
                       extension={item.extension}
+                      statusLabel={item.categoryName ?? undefined}
+                      statusColor={item.categoryColor ?? undefined}
                       onTap={() => {
                         openFile(item.extension, item.id, router);
                       }}
@@ -156,6 +163,16 @@ export default function RecentGrid() {
                           },
                         },
                         {
+                          label: "Set Category",
+                          danger: false,
+                          onTap: () => {
+                            setSelectedFileForCategory({
+                              id: item.id,
+                              name: item.name,
+                            });
+                          },
+                        },
+                        {
                           label: "History",
                           danger: false,
                           onTap: () => {
@@ -174,7 +191,15 @@ export default function RecentGrid() {
               </div>
             </div>
           </section>
-        ))}
+          ))}
+
+        <CategorySelectMenu
+          open={selectedFileForCategory !== null}
+          fileId={selectedFileForCategory?.id ?? ""}
+          fileName={selectedFileForCategory?.name ?? ""}
+          onClose={() => setSelectedFileForCategory(null)}
+          onSuccess={notifyUploadSuccess}
+        />
       </main>
     </PageWrapper>
   );

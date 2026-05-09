@@ -22,6 +22,8 @@ type FileCardType = {
   menuItems: MenuItemType[];
   isFavourite?: boolean;
   isDisabled?: boolean;
+  statusLabel?: string;
+  statusColor?: string;
   onTap?: () => void;
 };
 
@@ -48,6 +50,8 @@ export default function FileCard({
   menuItems,
   isFavourite,
   isDisabled,
+  statusLabel,
+  statusColor,
   onTap,
 }: FileCardType) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -164,8 +168,18 @@ export default function FileCard({
                 shadow-[0_4px_14px_rgba(0,0,0,0.28)]
                 backdrop-blur-sm
               "
-            >
+              >
               <Star size={11} className="fill-current" />
+            </div>
+          )}
+
+          {statusColor && (
+            <div className="absolute left-2 top-2 z-10 inline-flex items-center gap-2 rounded-full bg-[#1a1b1d]/85 px-2.5 py-1 text-[11px] font-medium text-[#f1f3f5] shadow-[0_4px_14px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+              <span
+                className="h-2.5 w-2.5 rounded-full border border-white/25"
+                style={{ backgroundColor: statusColor }}
+              />
+              <span className="truncate">{statusLabel ?? "Status"}</span>
             </div>
           )}
 

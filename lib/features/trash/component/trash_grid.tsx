@@ -21,9 +21,8 @@ export default function TrashGrid() {
   useEffect(() => {
     fetchDeletedFiles();
     fetchDeletedFolders();
-  }, []);
+  }, [fetchDeletedFiles, fetchDeletedFolders]);
 
-  useEffect;
   return (
     <PageWrapper isLoading={loading}>
       <main className="flex-1 overflow-y-auto px-6 pt-6 pb-10 scrollbar-thin scrollbar-thumb-[#2a2c2e] scrollbar-track-transparent">
@@ -61,6 +60,8 @@ export default function TrashGrid() {
               isFavourite={file.isFavourite}
               name={file.name}
               extension={file.extension}
+              statusLabel={file.categoryName ?? undefined}
+              statusColor={file.categoryColor ?? undefined}
               isDisabled
               menuItems={[
                 {

@@ -9,6 +9,8 @@ export type FileModel = {
   path: string;
   isFavourite: boolean;
   isDeleted: boolean;
+  categoryName?: string | null;
+  categoryColor?: string | null;
 };
 
 export type DownloadFileUrl = {

@@ -9,7 +9,6 @@ import {
   UploadRefreshProvider,
   useUploadRefresh,
 } from "../context/upload_refresh_context";
-import { CurrentDirectoryProvider } from "../context/current_directory_context";
 import {
   FolderModalProvider,
   useFolderModal,
@@ -62,7 +61,8 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
     folderId,
     notifyUploadSuccess,
   );
-  const { renameFile, fetchFiles } = useFileList(notifyUploadSuccess);
+  const { renameFile, fetchFiles, createWordFile } =
+    useFileList(notifyUploadSuccess);
   const { uploadFolder, renameFolder, fetchFolders } =
     useFolderList(notifyUploadSuccess);
 
@@ -127,64 +127,63 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <CurrentDirectoryProvider>
-      <div className="flex relative">
-        <div className="flex h-screen w-full overflow-hidden bg-[#111213] text-[#e8e9ea]">
-          <Sidebar
-            navItems={navItems}
-            activeItem={activeNav}
-            onNavigate={setActiveNav}
-            onUploadFiles={upload.addAndUploadFiles}
-            onCreateFolder={() => setShowCreateFolder(true)}
+    <div className="flex relative">
+      <div className="flex h-screen w-full overflow-hidden bg-[#111213] text-[#e8e9ea]">
+        <Sidebar
+          navItems={navItems}
+          activeItem={activeNav}
+          onNavigate={setActiveNav}
+          onUploadFiles={upload.addAndUploadFiles}
+          onCreateFolder={() => setShowCreateFolder(true)}
+          onCreateWordFile={() => createWordFile(folderId)}
+        />
+        <div className="flex flex-col flex-1 overflow-hidden">
+          <Topbar
+            onUploadToggle={() =>
+              setIsUploadPanelOpen((prevState) => !prevState)
+            }
           />
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <Topbar
-              onUploadToggle={() =>
-                setIsUploadPanelOpen((prevState) => !prevState)
-              }
-            />
-            {children}
-          </div>
+          {children}
         </div>
-        <FileUploader
-          showSection={showUploadedSection}
-          files={upload.files}
-          totalProgress={upload.totalProgress}
-        />
-
-        {/* Create Folder Modal */}
-        <InputModal
-          open={showCreateFolder}
-          onClose={() => setShowCreateFolder(false)}
-          onSubmit={async function (folderName: string): Promise<void> {
-            await uploadFolder(folderId, folderName);
-            setShowCreateFolder(false);
-          }}
-        />
-
-        {/* Update Folder Modal */}
-        <InputModal
-          open={isUpdateFolderOpen}
-          initialValue={selectedFolderName}
-          onClose={closeUpdateFolderModal}
-          onSubmit={async (folderName) => {
-            await renameFolder(selectedFolderId, folderName);
-            closeUpdateFolderModal();
-          }}
-        />
-
-        {/* Update File Modal */}
-        <InputModal
-          open={isUpdateFileOpen}
-          initialValue={selectedFileName}
-          onClose={closeUpdateFileModal}
-          onSubmit={async (fileName) => {
-            await renameFile(selectedFileId, fileName);
-            closeUpdateFileModal();
-          }}
-        />
       </div>
-    </CurrentDirectoryProvider>
+      <FileUploader
+        showSection={showUploadedSection}
+        files={upload.files}
+        totalProgress={upload.totalProgress}
+      />
+
+      {/* Create Folder Modal */}
+      <InputModal
+        open={showCreateFolder}
+        onClose={() => setShowCreateFolder(false)}
+        onSubmit={async function (folderName: string): Promise<void> {
+          await uploadFolder(folderId, folderName);
+          setShowCreateFolder(false);
+        }}
+      />
+
+      {/* Update Folder Modal */}
+      <InputModal
+        open={isUpdateFolderOpen}
+        initialValue={selectedFolderName}
+        onClose={closeUpdateFolderModal}
+        onSubmit={async (folderName) => {
+          await renameFolder(selectedFolderId, folderName);
+          closeUpdateFolderModal();
+        }}
+      />
+
+      {/* Update File Modal */}
+      <InputModal
+        open={isUpdateFileOpen}
+        initialValue={selectedFileName}
+        onClose={closeUpdateFileModal}
+        onSubmit={async (fileName) => {
+          await renameFile(selectedFileId, fileName);
+          closeUpdateFileModal();
+        }}
+      />
+    </div>
   );
 }
 

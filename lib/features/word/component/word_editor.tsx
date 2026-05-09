@@ -251,9 +251,31 @@ function normalizeEditorContent(raw?: JSONContent | string): JSONContent {
 }
 
 export default function WordEditor({ id }: { id: string }) {
-  const { loading, saving, content, saveContent } = useWord(id);
+  const { loading, saving, content, fileName, saveContent, renameFile } =
+    useWord(id);
+  const [documentName, setDocumentName] = useState("Document");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const previousNameRef = useRef("Document");
   const [, setEditorTick] = useState(0);
   const lastAppliedRemoteContentRef = useRef<string | undefined>("");
+  const activeDocumentName = fileName ?? documentName;
+
+  useEffect(() => {
+    if (!fileName) return;
+
+    setDocumentName(fileName);
+    previousNameRef.current = fileName;
+    document.title = `${fileName} - Word editor`;
+  }, [fileName]);
+
+  useEffect(() => {
+    if (!isEditingName) return;
+
+    nameInputRef.current?.focus();
+    nameInputRef.current?.select();
+  }, [isEditingName]);
 
   const editor = useEditor(
     {
@@ -286,6 +308,9 @@ export default function WordEditor({ id }: { id: string }) {
       onUpdate: () => {
         setEditorTick((current) => current + 1);
       },
+      onSelectionUpdate: () => {
+        setEditorTick((current) => current + 1);
+      },
     },
     [content],
   );
@@ -301,13 +326,35 @@ export default function WordEditor({ id }: { id: string }) {
     if (lastAppliedRemoteContentRef.current === contentSignature) return;
 
     lastAppliedRemoteContentRef.current = contentSignature;
-    editor.commands.setContent(nextContent, false);
+    editor.commands.setContent(nextContent);
   }, [content, editor]);
 
   const plainText = editor?.getText() ?? "";
   const activeStats = {
     words: plainText.trim() ? plainText.trim().split(/\s+/).length : 0,
     characters: plainText.length,
+  };
+
+  const getInlineMarkState = (markName: string) => {
+    if (!editor) return false;
+
+    const { selection, storedMarks } = editor.state;
+
+    if (selection.empty) {
+      const activeMarks = storedMarks ?? selection.$from.marks();
+      return activeMarks.some((mark) => mark.type.name === markName);
+    }
+
+    return editor.isActive(markName);
+  };
+
+  const getBlockState = (
+    name: "heading" | "bulletList" | "orderedList" | "blockquote" | "codeBlock",
+    attributes?: Record<string, unknown>,
+  ) => {
+    if (!editor) return false;
+
+    return editor.isActive(name, attributes);
   };
 
   const syncCurrentDraft = async () => {
@@ -323,13 +370,43 @@ export default function WordEditor({ id }: { id: string }) {
     }
   };
 
+  const renameCurrentFile = async (nextName: string) => {
+    if (!id || renaming) return;
+
+    const trimmedName = nextName.trim();
+
+    if (!trimmedName) {
+      toast.error("Nama file tidak boleh kosong");
+      return;
+    }
+
+    setRenaming(true);
+
+    try {
+      await renameFile(id, trimmedName);
+      setDocumentName(trimmedName);
+      previousNameRef.current = trimmedName;
+      document.title = `${trimmedName} - Word editor`;
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const submitRename = async () => {
+    setIsEditingName(false);
+
+    if (documentName === previousNameRef.current) return;
+
+    await renameCurrentFile(documentName);
+  };
+
   const downloadAsWord = () => {
     if (!editor) return;
 
-    const nextTitle = "Document";
+    const nextTitle = activeDocumentName;
     const rtf = toRtfDocument(nextTitle, editor.getJSON());
     const blob = new Blob([rtf], { type: "application/rtf" });
-    const fileName = "document.rtf";
+    const fileName = `${nextTitle.replace(/[\\/:*?"<>|]+/g, "-").trim() || "document"}.rtf`;
     const url = URL.createObjectURL(blob);
 
     const link = document.createElement("a");
@@ -345,6 +422,22 @@ export default function WordEditor({ id }: { id: string }) {
 
   const setHeading = (level: 1 | 2 | 3) => {
     editor?.chain().focus().toggleHeading({ level }).run();
+  };
+
+  const toggleBulletList = () => {
+    editor?.chain().focus().toggleBulletList().run();
+  };
+
+  const toggleOrderedList = () => {
+    editor?.chain().focus().toggleOrderedList().run();
+  };
+
+  const toggleBlockquote = () => {
+    editor?.chain().focus().toggleBlockquote().run();
+  };
+
+  const toggleCodeBlock = () => {
+    editor?.chain().focus().toggleCodeBlock().run();
   };
 
   const toggleLink = () => {
@@ -378,13 +471,45 @@ export default function WordEditor({ id }: { id: string }) {
       >
         <section className="flex min-w-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#222426] bg-[#121315] px-5 py-4">
-            <div className="min-w-0">
-              <p className="text-xs uppercase tracking-[0.24em] text-[#7a7d82]">
-                Document from backend
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold text-[#f5f6f7]">
-                Word editor
-              </h1>
+            <div className="min-w-0 flex-1">
+              {isEditingName ? (
+                <input
+                  ref={nameInputRef}
+                  value={documentName}
+                  onChange={(event) => setDocumentName(event.target.value)}
+                  onBlur={() => submitRename()}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      submitRename();
+                      return;
+                    }
+
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      setDocumentName(previousNameRef.current);
+                      setIsEditingName(false);
+                    }
+                  }}
+                  disabled={renaming}
+                  className="mt-2 w-full bg-transparent text-2xl font-semibold text-[#f5f6f7] outline-none placeholder:text-[#7a7d82] disabled:opacity-60"
+                  placeholder="Nama file"
+                />
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    previousNameRef.current = activeDocumentName;
+                    setIsEditingName(true);
+                  }}
+                  className="mt-2 block w-full min-w-0 text-left"
+                  title="Klik untuk ubah nama file"
+                >
+                  <h1 className="truncate text-2xl font-semibold text-[#f5f6f7] transition-colors hover:text-white">
+                    {activeDocumentName}
+                  </h1>
+                </button>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
@@ -411,25 +536,25 @@ export default function WordEditor({ id }: { id: string }) {
           <div className="border-b border-[#222426] bg-[#111213] px-4 py-3">
             <div className="flex flex-wrap items-center gap-2">
               <ToolbarButton
-                active={editor?.isActive("bold")}
+                active={getInlineMarkState("bold")}
                 onClick={() => editor?.chain().focus().toggleBold().run()}
                 icon={Bold}
                 label="Bold"
               />
               <ToolbarButton
-                active={editor?.isActive("italic")}
+                active={getInlineMarkState("italic")}
                 onClick={() => editor?.chain().focus().toggleItalic().run()}
                 icon={Italic}
                 label="Italic"
               />
               <ToolbarButton
-                active={editor?.isActive("underline")}
+                active={getInlineMarkState("underline")}
                 onClick={() => editor?.chain().focus().toggleUnderline().run()}
                 icon={UnderlineIcon}
                 label="Underline"
               />
               <ToolbarButton
-                active={editor?.isActive("strike")}
+                active={getInlineMarkState("strike")}
                 onClick={() => editor?.chain().focus().toggleStrike().run()}
                 icon={Strikethrough}
                 label="Strikethrough"
@@ -438,51 +563,49 @@ export default function WordEditor({ id }: { id: string }) {
               <div className="mx-1 h-8 w-px bg-[#222426]" />
 
               <ToolbarButton
-                active={editor?.isActive("heading", { level: 1 })}
+                active={getBlockState("heading", { level: 1 })}
                 onClick={() => setHeading(1)}
                 icon={Heading1}
                 label="Heading 1"
               />
               <ToolbarButton
-                active={editor?.isActive("heading", { level: 2 })}
+                active={getBlockState("heading", { level: 2 })}
                 onClick={() => setHeading(2)}
                 icon={Heading2}
                 label="Heading 2"
               />
               <ToolbarButton
-                active={editor?.isActive("heading", { level: 3 })}
+                active={getBlockState("heading", { level: 3 })}
                 onClick={() => setHeading(3)}
                 icon={Heading3}
                 label="Heading 3"
               />
               <ToolbarButton
-                active={editor?.isActive("bulletList")}
-                onClick={() => editor?.chain().focus().toggleBulletList().run()}
+                active={getBlockState("bulletList")}
+                onClick={toggleBulletList}
                 icon={List}
                 label="Bullets"
               />
               <ToolbarButton
-                active={editor?.isActive("orderedList")}
-                onClick={() =>
-                  editor?.chain().focus().toggleOrderedList().run()
-                }
+                active={getBlockState("orderedList")}
+                onClick={toggleOrderedList}
                 icon={ListOrdered}
                 label="Numbered"
               />
               <ToolbarButton
-                active={editor?.isActive("blockquote")}
-                onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+                active={getBlockState("blockquote")}
+                onClick={toggleBlockquote}
                 icon={Quote}
                 label="Quote"
               />
               <ToolbarButton
-                active={editor?.isActive("codeBlock")}
-                onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+                active={getBlockState("codeBlock")}
+                onClick={toggleCodeBlock}
                 icon={Code}
                 label="Code block"
               />
               <ToolbarButton
-                active={editor?.isActive("link")}
+                active={getInlineMarkState("link")}
                 onClick={toggleLink}
                 icon={Link2}
                 label="Link"
@@ -568,6 +691,7 @@ function ToolbarButton({
   return (
     <button
       type="button"
+      onMouseDown={(event) => event.preventDefault()}
       onClick={onClick}
       title={label}
       className={`inline-flex h-10 items-center gap-2 rounded-xl border px-3 text-sm transition-colors ${

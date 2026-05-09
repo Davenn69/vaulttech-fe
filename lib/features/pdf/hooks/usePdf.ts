@@ -3,7 +3,10 @@ import { api, apiClient } from "@/lib/cores/utils/api";
 import axios from "axios";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import { DownloadFileUrl } from "@/lib/features/home/types/file";
+import {
+  DownloadFileUrl,
+  FileModel,
+} from "@/lib/features/home/types/file";
 
 export default function usePdf(id?: string) {
   const [loading, setLoading] = useState(false);
@@ -52,6 +55,29 @@ export default function usePdf(id?: string) {
     } finally {
       setLoading(false);
     }
+  }, [revokeObjectUrl]);
+
+  const renameFile = useCallback(async (fileId: string, name: string) => {
+    try {
+      const res = await api.patch<ApiResponse<FileModel[]>>(
+        "/file/updateName",
+        {
+          id: fileId,
+          name,
+        },
+      );
+
+      setFileName(name);
+      toast.success(res.message);
+      return res.data;
+    } catch (error) {
+      const message = axios.isAxiosError<ApiResponseError>(error)
+        ? error.response?.data.message
+        : "Failed to update file name";
+
+      toast.error(message ?? "Failed to update file name");
+      throw error;
+    }
   }, []);
 
   useEffect(() => {
@@ -72,5 +98,6 @@ export default function usePdf(id?: string) {
     pdfUrl,
     fileName,
     fetchPdf,
+    renameFile,
   };
 }

@@ -9,16 +9,15 @@ import PageWrapper from "@/lib/cores/components/page_wrapper";
 import FolderChip from "@/lib/cores/components/folder_chip";
 import FileCard from "@/lib/cores/components/file_card";
 import { useRouter } from "next/navigation";
-import { useCurrentDirectory } from "../context/current_directory_context";
 import ItemManager, { DraggableItemModel } from "../types/itemManager";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
+import { openFile } from "@/lib/cores/utils/fileUtils";
 
 export default function RepositoryGrid({ id }: { id: string }) {
   const router = useRouter();
 
   const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
   const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
-  const { pushDirectory } = useCurrentDirectory();
 
   const gridRef = useRef<HTMLDivElement | null>(null);
   const itemManagerRef = useRef<ItemManager | null>(null);
@@ -30,6 +29,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
     fetchFiles,
     deleteFile,
     addFileToFavourite,
+    removeFileFromFavourites,
     downloadFile,
   } = useFileList(notifyUploadSuccess);
   const {
@@ -38,6 +38,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
     fetchFolders,
     deleteFolder,
     addFolderToFavourite,
+    removeFolderFromFavourites,
   } = useFolderList(notifyUploadSuccess);
 
   useEffect(() => {
@@ -118,9 +119,17 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     onTap: () => openUpdateFolderModal(folder.id, folder.name),
                   },
                   {
-                    label: "Add to Favourites",
+                    label: folder.isFavourite
+                      ? "Remove from Favourites"
+                      : "Add to Favourites",
                     danger: false,
-                    onTap: () => addFolderToFavourite(folder.id),
+                    onTap: () => {
+                      if (folder.isFavourite) {
+                        removeFolderFromFavourites(folder.id);
+                      } else {
+                        addFolderToFavourite(folder.id);
+                      }
+                    },
                   },
                   {
                     label: "Move to Trash",
@@ -130,11 +139,10 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     },
                   },
                 ]}
-              onTap={() => {
-                pushDirectory(folder);
-                router.push(PageRoutes.repositoryFolder(folder.id));
-              }}
-            />
+                onTap={() => {
+                  router.push(PageRoutes.repositoryFolder(folder.id));
+                }}
+              />
             </div>
           ))}
         </div>
@@ -144,37 +152,36 @@ export default function RepositoryGrid({ id }: { id: string }) {
           {files.map((file) => (
             <div key={file.id} data-item-id={file.id}>
               <FileCard
+                onTap={() => openFile(file.extension, file.id, router)}
                 isFavourite={file.isFavourite}
                 name={file.name}
                 id={file.id}
+                extension={file.extension}
                 menuItems={[
                   {
                     label: "Open",
                     danger: false,
                     onTap: () => {
-                    console.log(file);
-                    switch (file.extension) {
-                      case "word":
-                        router.push(PageRoutes.wordFile(file.id));
-                        break;
-                      case "excel":
-                      case "pdf":
-                        router.push(PageRoutes.pdfFile(file.id));
-                        break;
-                      default:
-                        break;
-                    }
+                      openFile(file.extension, file.id, router);
+                    },
                   },
-                },
                   {
                     label: "Rename",
                     danger: false,
                     onTap: () => openUpdateFileModal(file.id, file.name),
                   },
                   {
-                    label: "Add to Favourites",
+                    label: file.isFavourite
+                      ? "Remove from Favourites"
+                      : "Add to Favourites",
                     danger: false,
-                    onTap: () => addFileToFavourite(file.id),
+                    onTap: () => {
+                      if (file.isFavourite) {
+                        removeFileFromFavourites(file.id);
+                      } else {
+                        addFileToFavourite(file.id);
+                      }
+                    },
                   },
                   {
                     label: "Download",
@@ -184,12 +191,18 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     },
                   },
                   {
+                    label: "History",
+                    danger: false,
+                    onTap: () => {
+                      router.push(PageRoutes.recordFile(file.id));
+                    },
+                  },
+                  {
                     label: "Delete",
                     danger: true,
                     onTap: () => deleteFile(file.id),
                   },
                 ]}
-                thumbnail={undefined}
               />
             </div>
           ))}

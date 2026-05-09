@@ -5,7 +5,6 @@ export class PageRoutes {
   static readonly repositoryRecent = "/repo/recent";
   static readonly repositoryFavourites = "/repo/favourites";
   static readonly repositoryTrash = "/repo/trash";
-  static readonly repositoryWord = "/repo/word";
 
   static repositoryRoot() {
     const folderId = folderStorage.getParentFolderId();
@@ -22,5 +21,13 @@ export class PageRoutes {
 
   static pdfFile(id: string) {
     return `/pdf/${id}`;
+  }
+
+  static recordFile(id: string) {
+    return `/record/${id}`;
+  }
+
+  static excelFile(id: string) {
+    return `/excel/${id}`;
   }
 }

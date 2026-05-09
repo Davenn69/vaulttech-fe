@@ -162,19 +162,19 @@ export default function FileCard({
           {isFavourite && (
             <div
               className="
-                absolute right-2 top-2 z-10 inline-flex items-center gap-1
+                absolute right-2 top-10 z-10 inline-flex items-center gap-1
                 rounded-full bg-[#1a1b1d]/85
                 px-2 py-2 text-[11px] font-medium text-[#f1c84c]
                 shadow-[0_4px_14px_rgba(0,0,0,0.28)]
                 backdrop-blur-sm
               "
-              >
+            >
               <Star size={11} className="fill-current" />
             </div>
           )}
 
           {statusColor && (
-            <div className="absolute left-2 top-2 z-10 inline-flex items-center gap-2 rounded-full bg-[#1a1b1d]/85 px-2.5 py-1 text-[11px] font-medium text-[#f1f3f5] shadow-[0_4px_14px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+            <div className="absolute right-2 top-2 z-10 inline-flex items-center gap-2 rounded-full bg-[#1a1b1d]/85 px-2.5 py-1 text-[11px] font-medium text-[#f1f3f5] shadow-[0_4px_14px_rgba(0,0,0,0.28)] backdrop-blur-sm">
               <span
                 className="h-2.5 w-2.5 rounded-full border border-white/25"
                 style={{ backgroundColor: statusColor }}

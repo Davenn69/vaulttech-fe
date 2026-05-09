@@ -1,3 +1,5 @@
+import { CategoryModel } from "../../category/types/category";
+
 export type FileModel = {
   id: string;
   userId: string;
@@ -9,8 +11,7 @@ export type FileModel = {
   path: string;
   isFavourite: boolean;
   isDeleted: boolean;
-  categoryName?: string | null;
-  categoryColor?: string | null;
+  category?: CategoryModel;
 };
 
 export type DownloadFileUrl = {

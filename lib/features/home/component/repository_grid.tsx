@@ -162,8 +162,8 @@ export default function RepositoryGrid({ id }: { id: string }) {
                 name={file.name}
                 id={file.id}
                 extension={file.extension}
-                statusLabel={file.categoryName ?? undefined}
-                statusColor={file.categoryColor ?? undefined}
+                statusLabel={file.category?.name}
+                statusColor={file.category?.color}
                 menuItems={[
                   {
                     label: "Open",

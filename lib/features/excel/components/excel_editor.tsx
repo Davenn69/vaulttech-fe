@@ -1,10 +1,15 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HotTable, { HotTableRef } from "@handsontable/react-wrapper";
 import Handsontable from "handsontable";
 import { textRenderer as TextRenderer } from "handsontable/renderers/textRenderer";
 import { HyperFormula } from "hyperformula";
+import {
+  ExcelCellValue,
+  ExcelWorkbookContent,
+  useExcel,
+} from "../hooks/useExcel";
 import {
   Bold,
   Italic,
@@ -68,16 +73,6 @@ function createInitialData(rows: number, cols: number) {
     Array.from({ length: cols }, () => ""),
   );
 
-  data[0][0] = "Revenue";
-  data[0][1] = 3200;
-  data[0][2] = 1500;
-  data[0][3] = "=B1-C1";
-  data[1][0] = "Growth";
-  data[1][1] = 0.18;
-  data[1][2] = "=B1*B2";
-  data[2][0] = "Note";
-  data[2][1] = "Select cells and use the toolbar to format them.";
-
   return data;
 }
 
@@ -139,6 +134,24 @@ function spreadsheetRenderer(...args: Parameters<typeof TextRenderer>) {
   td.style.whiteSpace = "pre-wrap";
 }
 
+const FORMATTING_KEYS = [
+  "bold",
+  "italic",
+  "underline",
+  "textAlign",
+  "verticalAlign",
+  "textColor",
+  "backgroundColor",
+  "fontSize",
+  "fontFamily",
+] as const;
+
+type ExcelCellMetaEntry = NonNullable<ExcelWorkbookContent["cellMeta"]>[number];
+
+function isCustomMetaDefined(meta: ExcelCellMetaEntry) {
+  return FORMATTING_KEYS.some((key) => meta[key] !== undefined);
+}
+
 export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const hotRef = useRef<HotTableRef | null>(null);
   const selectionRef = useRef<SelectionBounds | null>({
@@ -162,8 +175,11 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     backgroundColor?: string;
     fontSize?: number;
   }>({});
+  const { loading, saving, content, saveContent, file } = useExcel(workbookId);
 
-  const data = useMemo(() => createInitialData(ROWS, COLS), []);
+  const [tableData, setTableData] = useState<Array<Array<ExcelCellValue>>>(() =>
+    createInitialData(ROWS, COLS),
+  );
   const columnLabels = useMemo(() => buildColumns(COLS), []);
   const hotStyle = useMemo(() => ({ width: "100%", height: "100%" }), []);
   const formulas = useMemo(() => ({ engine: HyperFormula }), []);
@@ -237,6 +253,77 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     [updateSelectedState],
   );
 
+  const applyWorkbookContent = useCallback(
+    (hot: Handsontable.Core, workbook?: ExcelWorkbookContent) => {
+      if (!workbook) return;
+
+      const nextData =
+        workbook.data.length > 0
+          ? workbook.data
+          : createInitialData(ROWS, COLS);
+
+      setTableData(nextData);
+
+      hot.batch(() => {
+        FORMATTING_KEYS.forEach((key) => {
+          for (let row = 0; row < hot.countRows(); row += 1) {
+            for (let col = 0; col < hot.countCols(); col += 1) {
+              hot.removeCellMeta(row, col, key);
+            }
+          }
+        });
+
+        workbook.cellMeta?.forEach((meta) => {
+          if (!isCustomMetaDefined(meta)) return;
+
+          const {
+            row,
+            col,
+            bold,
+            italic,
+            underline,
+            textAlign,
+            verticalAlign,
+            textColor,
+            backgroundColor,
+            fontSize,
+            fontFamily,
+          } = meta;
+
+          if (bold !== undefined) hot.setCellMeta(row, col, "bold", bold);
+          if (italic !== undefined) hot.setCellMeta(row, col, "italic", italic);
+          if (underline !== undefined)
+            hot.setCellMeta(row, col, "underline", underline);
+          if (textAlign !== undefined)
+            hot.setCellMeta(row, col, "textAlign", textAlign);
+          if (verticalAlign !== undefined)
+            hot.setCellMeta(row, col, "verticalAlign", verticalAlign);
+          if (textColor !== undefined)
+            hot.setCellMeta(row, col, "textColor", textColor);
+          if (backgroundColor !== undefined)
+            hot.setCellMeta(row, col, "backgroundColor", backgroundColor);
+          if (fontSize !== undefined)
+            hot.setCellMeta(row, col, "fontSize", fontSize);
+          if (fontFamily !== undefined)
+            hot.setCellMeta(row, col, "fontFamily", fontFamily);
+        });
+      });
+
+      hot.render();
+      updateSelectedState(hot);
+    },
+    [updateSelectedState],
+  );
+
+  useEffect(() => {
+    if (!content) return;
+
+    const hot = hotRef.current?.hotInstance;
+    if (!hot) return;
+
+    applyWorkbookContent(hot, content);
+  }, [applyWorkbookContent, content]);
+
   const handleAfterInit = useCallback(() => {
     syncSelection(hotRef.current?.hotInstance ?? null);
   }, [syncSelection]);
@@ -253,6 +340,33 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     },
     [syncSelection],
   );
+
+  const handleSaveWorkbook = useCallback(async () => {
+    const hot = hotRef.current?.hotInstance;
+    if (!hot) return;
+
+    const cellMeta = hot
+      .getCellsMeta()
+      .map((meta) => ({
+        row: meta.row,
+        col: meta.col,
+        bold: meta.bold,
+        italic: meta.italic,
+        underline: meta.underline,
+        textAlign: meta.textAlign,
+        verticalAlign: meta.verticalAlign,
+        textColor: meta.textColor,
+        backgroundColor: meta.backgroundColor,
+        fontSize: meta.fontSize,
+        fontFamily: meta.fontFamily,
+      }))
+      .filter(isCustomMetaDefined);
+
+    await saveContent(workbookId, {
+      data: hot.getSourceData() as Array<Array<ExcelCellValue>>,
+      cellMeta,
+    });
+  }, [saveContent, workbookId]);
 
   const handleAfterChange = useCallback(
     (_changes: unknown, source: string) => {
@@ -473,23 +587,16 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     )?.redo();
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,108,255,0.2),_transparent_34%),linear-gradient(180deg,_#101214_0%,_#0b0d10_100%)] text-[#eef1f4]">
+    <div className="min-h-screen  text-[#eef1f4]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1800px] flex-col gap-4 p-4 md:p-6">
         <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-xl">
           <div className="flex flex-col gap-4 border-b border-white/10 px-4 py-4 md:px-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#226cff] to-[#33c481] text-white shadow-[0_12px_30px_rgba(34,108,255,0.35)]">
-                  <SheetIcon size={22} />
-                </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.28em] text-white/50">
-                    Workbook
-                  </p>
                   <h1 className="text-lg font-semibold text-white md:text-2xl">
-                    Excel Editor
+                    {file?.name}
                   </h1>
-                  <p className="text-sm text-white/55">File ID: {workbookId}</p>
                 </div>
               </div>
 
@@ -612,6 +719,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                 <Eraser size={16} />
                 Clear style
               </button>
+              <button onClick={handleSaveWorkbook} className="tool-btn">
+                <Download size={16} />
+                {saving ? "Saving..." : "Save"}
+              </button>
             </div>
 
             <div className="grid gap-3 md:grid-cols-[1.3fr_0.7fr_0.7fr_0.7fr]">
@@ -670,7 +781,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
               ref={hotRef}
               className="ht-theme-main-dark"
               style={hotStyle}
-              data={data}
+              data={tableData}
               colHeaders={columnLabels}
               rowHeaders={true}
               colWidths={120}
@@ -701,7 +812,11 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/55">
           <div className="flex items-center gap-2">
             <Download size={16} />
-            <span>Ready to extend with save/export hooks.</span>
+            <span>
+              {loading
+                ? "Loading workbook..."
+                : "Ready to extend with save/export hooks."}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Trash2 size={16} className="text-[#ff8d8d]" />

@@ -5,6 +5,7 @@ import HotTable, { HotTableRef } from "@handsontable/react-wrapper";
 import Handsontable from "handsontable";
 import { textRenderer as TextRenderer } from "handsontable/renderers/textRenderer";
 import { HyperFormula } from "hyperformula";
+import toast from "react-hot-toast";
 import {
   ExcelCellValue,
   ExcelWorkbookContent,
@@ -17,7 +18,6 @@ import {
   Undo2,
   Redo2,
   Trash2,
-  Sheet as SheetIcon,
   Sigma,
   AlignLeft,
   AlignCenter,
@@ -154,6 +154,7 @@ function isCustomMetaDefined(meta: ExcelCellMetaEntry) {
 
 export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const hotRef = useRef<HotTableRef | null>(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
   const selectionRef = useRef<SelectionBounds | null>({
     fromRow: 0,
     fromCol: 0,
@@ -175,7 +176,13 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     backgroundColor?: string;
     fontSize?: number;
   }>({});
-  const { loading, saving, content, saveContent, file } = useExcel(workbookId);
+  const { loading, saving, content, saveContent, fileName, renameFile } =
+    useExcel(workbookId);
+  const [documentName, setDocumentName] = useState("Spreadsheet");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const previousNameRef = useRef("Spreadsheet");
+  const activeDocumentName = fileName ?? documentName;
 
   const [tableData, setTableData] = useState<Array<Array<ExcelCellValue>>>(() =>
     createInitialData(ROWS, COLS),
@@ -183,6 +190,21 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const columnLabels = useMemo(() => buildColumns(COLS), []);
   const hotStyle = useMemo(() => ({ width: "100%", height: "100%" }), []);
   const formulas = useMemo(() => ({ engine: HyperFormula }), []);
+
+  useEffect(() => {
+    if (!fileName) return;
+
+    setDocumentName(fileName);
+    previousNameRef.current = fileName;
+    document.title = `${fileName} - Excel editor`;
+  }, [fileName]);
+
+  useEffect(() => {
+    if (!isEditingName) return;
+
+    nameInputRef.current?.focus();
+    nameInputRef.current?.select();
+  }, [isEditingName]);
 
   const updateSelectedState = useCallback((hot: Handsontable.Core | null) => {
     if (!hot) return;
@@ -586,6 +608,36 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       ) as Handsontable.plugins.UndoRedo | null
     )?.redo();
 
+  const renameCurrentFile = async (nextName: string) => {
+    if (!workbookId || renaming) return;
+
+    const trimmedName = nextName.trim();
+
+    if (!trimmedName) {
+      toast.error("Nama file tidak boleh kosong");
+      return;
+    }
+
+    setRenaming(true);
+
+    try {
+      await renameFile(workbookId, trimmedName);
+      setDocumentName(trimmedName);
+      previousNameRef.current = trimmedName;
+      document.title = `${trimmedName} - Excel editor`;
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const submitRename = async () => {
+    setIsEditingName(false);
+
+    if (documentName === previousNameRef.current) return;
+
+    await renameCurrentFile(documentName);
+  };
+
   return (
     <div className="min-h-screen  text-[#eef1f4]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1800px] flex-col gap-4 p-4 md:p-6">
@@ -594,9 +646,44 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div>
-                  <h1 className="text-lg font-semibold text-white md:text-2xl">
-                    {file?.name}
-                  </h1>
+                  {isEditingName ? (
+                    <input
+                      ref={nameInputRef}
+                      value={documentName}
+                      onChange={(event) => setDocumentName(event.target.value)}
+                      onBlur={() => submitRename()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          submitRename();
+                          return;
+                        }
+
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          setDocumentName(previousNameRef.current);
+                          setIsEditingName(false);
+                        }
+                      }}
+                      disabled={renaming}
+                      className="mt-2 w-full bg-transparent text-2xl font-semibold text-[#f5f6f7] outline-none placeholder:text-[#7a7d82] disabled:opacity-60"
+                      placeholder="Nama file"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        previousNameRef.current = activeDocumentName;
+                        setIsEditingName(true);
+                      }}
+                      className="mt-2 block w-full min-w-0 text-left"
+                      title="Klik untuk ubah nama file"
+                    >
+                      <h1 className="truncate text-2xl font-semibold text-[#f5f6f7] transition-colors hover:text-white">
+                        {activeDocumentName}
+                      </h1>
+                    </button>
+                  )}
                 </div>
               </div>
 

@@ -57,6 +57,10 @@ export type ExcelApiPayload = {
   content: ExcelApiRow[];
 };
 
+export type ExcelApiResponse = {
+  data: ExcelApiPayload;
+};
+
 export function apiCellToEditorValue(cell: ExcelApiCell): ExcelCellValue {
   return cell.formula ?? cell.value;
 }

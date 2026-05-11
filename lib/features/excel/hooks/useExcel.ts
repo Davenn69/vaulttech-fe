@@ -8,13 +8,12 @@ import {
   apiWorkbookToEditorContent,
   ExcelWorkbookContent,
 } from "../types/excel";
-import { FileModel } from "../../home/types/file";
 
 export function useExcel(id?: string) {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [content, setContent] = useState<ExcelWorkbookContent>();
-  const [file, setFile] = useState<FileModel>();
+  const [fileName, setFileName] = useState<string>();
 
   const fetchContent = useCallback(async (fileId: string) => {
     setLoading(true);
@@ -28,7 +27,7 @@ export function useExcel(id?: string) {
       const nextContent = apiWorkbookToEditorContent(workbook);
 
       setContent(nextContent);
-      setFile(workbook.file);
+      setFileName(workbook.file?.name);
       return nextContent;
     } catch (error) {
       const message = axios.isAxiosError<ApiResponseError>(error)
@@ -58,7 +57,7 @@ export function useExcel(id?: string) {
         const workbook = res.data;
         const normalized = apiWorkbookToEditorContent(workbook) ?? nextContent;
         setContent(normalized);
-        setFile(workbook.file);
+        setFileName(workbook.file?.name);
         toast.success(res.message);
         return normalized;
       } catch (error) {
@@ -75,6 +74,29 @@ export function useExcel(id?: string) {
     [],
   );
 
+  const renameFile = useCallback(async (fileId: string, name: string) => {
+    try {
+      const res = await api.patch<ApiResponse<{ id: string; name: string }>>(
+        `/file/updateName`,
+        {
+          id: fileId,
+          name,
+        },
+      );
+
+      setFileName(name);
+      toast.success(res.message);
+      return res.data;
+    } catch (error) {
+      const message = axios.isAxiosError<ApiResponseError>(error)
+        ? error.response?.data.message
+        : "Failed to update file name";
+
+      toast.error(message ?? "Failed to update file name");
+      throw error;
+    }
+  }, []);
+
   useEffect(() => {
     if (!id) return;
 
@@ -85,8 +107,9 @@ export function useExcel(id?: string) {
     loading,
     saving,
     content,
-    file,
+    fileName,
     fetchContent,
     saveContent,
+    renameFile,
   };
 }

@@ -5,6 +5,7 @@ export class PageRoutes {
   static readonly repositoryRecent = "/repo/recent";
   static readonly repositoryFavourites = "/repo/favourites";
   static readonly repositoryTrash = "/repo/trash";
+  static readonly repositoryCategory = "/repo/category";
 
   static repositoryRoot() {
     const folderId = folderStorage.getParentFolderId();

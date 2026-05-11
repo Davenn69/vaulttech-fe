@@ -18,7 +18,7 @@ import { useFolderList } from "../hooks/useFolderList";
 import InputModal from "./input_modal";
 import { useFileList } from "../hooks/useFileList";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
-import { Clock, FolderOpen, Star, Trash2 } from "lucide-react";
+import { Clock, FolderOpen, Star, Trash2, Cable } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 function getActiveNav(pathname: string) {
@@ -29,6 +29,8 @@ function getActiveNav(pathname: string) {
       return "favourites";
     case PageRoutes.repositoryTrash:
       return "trash";
+    case PageRoutes.repositoryCategory:
+      return "category";
   }
 
   if (pathname === PageRoutes.repository || /^\/repo\/[^/]+$/.test(pathname)) {
@@ -61,7 +63,7 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
     folderId,
     notifyUploadSuccess,
   );
-  const { renameFile, fetchFiles, createWordFile } =
+  const { renameFile, fetchFiles, createWordFile, createExcelFile } =
     useFileList(notifyUploadSuccess);
   const { uploadFolder, renameFolder, fetchFolders } =
     useFolderList(notifyUploadSuccess);
@@ -117,6 +119,14 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
       },
     },
     {
+      icon: Cable,
+      label: "Category",
+      id: "category",
+      onTap: async () => {
+        await router.push(PageRoutes.repositoryCategory);
+      },
+    },
+    {
       icon: Trash2,
       label: "Trash",
       id: "trash",
@@ -136,6 +146,7 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
           onUploadFiles={upload.addAndUploadFiles}
           onCreateFolder={() => setShowCreateFolder(true)}
           onCreateWordFile={() => createWordFile(folderId)}
+          onCreateExcelFile={() => createExcelFile(folderId)}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Topbar

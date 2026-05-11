@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import HotTable, { HotTableRef } from "@handsontable/react-wrapper";
 import Handsontable from "handsontable";
 import { textRenderer as TextRenderer } from "handsontable/renderers/textRenderer";
@@ -35,6 +35,14 @@ type ExcelEditorProps = {
 
 type AlignMode = "left" | "center" | "right" | "justify";
 type VerticalMode = "top" | "middle" | "bottom";
+type SelectionBounds = {
+  fromRow: number;
+  fromCol: number;
+  toRow: number;
+  toCol: number;
+  highlightRow: number;
+  highlightCol: number;
+};
 
 const ROWS = 40;
 const COLS = 16;
@@ -88,16 +96,13 @@ function formatAddress(row: number, col: number) {
   return `${toColumnLabel(col)}${row + 1}`;
 }
 
-function getSelectedCells(hot: Handsontable.Core) {
-  const range = hot.getSelectedRangeLast();
-  if (!range) return [];
+function getSelectedCells(bounds: SelectionBounds | null) {
+  if (!bounds) return [];
 
-  const start = range.getTopStartCorner();
-  const end = range.getBottomEndCorner();
   const cells: Array<{ row: number; col: number }> = [];
 
-  for (let row = start.row; row <= end.row; row += 1) {
-    for (let col = start.col; col <= end.col; col += 1) {
+  for (let row = bounds.fromRow; row <= bounds.toRow; row += 1) {
+    for (let col = bounds.fromCol; col <= bounds.toCol; col += 1) {
       cells.push({ row, col });
     }
   }
@@ -136,6 +141,14 @@ function spreadsheetRenderer(...args: Parameters<typeof TextRenderer>) {
 
 export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const hotRef = useRef<HotTableRef | null>(null);
+  const selectionRef = useRef<SelectionBounds | null>({
+    fromRow: 0,
+    fromCol: 0,
+    toRow: 0,
+    toCol: 0,
+    highlightRow: 0,
+    highlightCol: 0,
+  });
   const [selectedAddress, setSelectedAddress] = useState("A1");
   const [formulaInput, setFormulaInput] = useState("Revenue");
   const [selectedValue, setSelectedValue] = useState<string>("Revenue");
@@ -152,8 +165,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
   const data = useMemo(() => createInitialData(ROWS, COLS), []);
   const columnLabels = useMemo(() => buildColumns(COLS), []);
+  const hotStyle = useMemo(() => ({ width: "100%", height: "100%" }), []);
+  const formulas = useMemo(() => ({ engine: HyperFormula }), []);
 
-  const syncSelection = (hot: Handsontable.Core | null) => {
+  const updateSelectedState = useCallback((hot: Handsontable.Core | null) => {
     if (!hot) return;
 
     const range = hot.getSelectedRangeLast();
@@ -167,11 +182,11 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     const rawValue = hot.getSourceDataAtCell(row, col);
     const renderedValue = hot.getDataAtCell(row, col);
     const meta = hot.getCellMeta(row, col) as typeof selectedMeta;
-
-    setSelectedAddress(formatAddress(row, col));
-    setFormulaInput(rawValue == null ? "" : String(rawValue));
-    setSelectedValue(renderedValue == null ? "" : String(renderedValue));
-    setSelectedMeta({
+    const nextAddress = formatAddress(row, col);
+    const nextFormulaInput = rawValue == null ? "" : String(rawValue);
+    const nextSelectedValue =
+      renderedValue == null ? "" : String(renderedValue);
+    const nextSelectedMeta = {
       bold: meta.bold,
       italic: meta.italic,
       underline: meta.underline,
@@ -180,28 +195,143 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       textColor: meta.textColor,
       backgroundColor: meta.backgroundColor,
       fontSize: meta.fontSize,
+    };
+
+    selectionRef.current = {
+      fromRow: range.getTopStartCorner().row,
+      fromCol: range.getTopStartCorner().col,
+      toRow: range.getBottomEndCorner().row,
+      toCol: range.getBottomEndCorner().col,
+      highlightRow: row,
+      highlightCol: col,
+    };
+
+    setSelectedAddress((currentValue) =>
+      currentValue === nextAddress ? currentValue : nextAddress,
+    );
+    setFormulaInput((currentValue) =>
+      currentValue === nextFormulaInput ? currentValue : nextFormulaInput,
+    );
+    setSelectedValue((currentValue) =>
+      currentValue === nextSelectedValue ? currentValue : nextSelectedValue,
+    );
+    setSelectedMeta((currentValue) => {
+      const isSame =
+        currentValue.bold === nextSelectedMeta.bold &&
+        currentValue.italic === nextSelectedMeta.italic &&
+        currentValue.underline === nextSelectedMeta.underline &&
+        currentValue.textAlign === nextSelectedMeta.textAlign &&
+        currentValue.verticalAlign === nextSelectedMeta.verticalAlign &&
+        currentValue.textColor === nextSelectedMeta.textColor &&
+        currentValue.backgroundColor === nextSelectedMeta.backgroundColor &&
+        currentValue.fontSize === nextSelectedMeta.fontSize;
+
+      return isSame ? currentValue : nextSelectedMeta;
     });
+  }, []);
+
+  const syncSelection = useCallback(
+    (hot: Handsontable.Core | null) => {
+      updateSelectedState(hot);
+    },
+    [updateSelectedState],
+  );
+
+  const handleAfterInit = useCallback(() => {
+    syncSelection(hotRef.current?.hotInstance ?? null);
+  }, [syncSelection]);
+
+  const handleAfterSelectionEnd = useCallback(
+    (
+      _row: number,
+      _column: number,
+      _row2: number,
+      _column2: number,
+      _selectionLayerLevel: number,
+    ) => {
+      syncSelection(hotRef.current?.hotInstance ?? null);
+    },
+    [syncSelection],
+  );
+
+  const handleAfterChange = useCallback(
+    (_changes: unknown, source: string) => {
+      if (
+        source === "loadData" ||
+        source === "UndoRedo.undo" ||
+        source === "UndoRedo.redo"
+      ) {
+        updateSelectedState(hotRef.current?.hotInstance ?? null);
+        return;
+      }
+      updateSelectedState(hotRef.current?.hotInstance ?? null);
+    },
+    [updateSelectedState],
+  );
+
+  const renderCellProps = useCallback((row: number, col: number) => {
+    const cellProperties = {} as Handsontable.CellProperties & {
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+      textAlign?: AlignMode;
+      verticalAlign?: VerticalMode;
+      textColor?: string;
+      backgroundColor?: string;
+      fontSize?: number;
+    };
+
+    cellProperties.renderer = spreadsheetRenderer;
+
+    if (row === 0 && col === 0) {
+      cellProperties.bold = true;
+      cellProperties.fontSize = 16;
+    }
+
+    return cellProperties;
+  }, []);
+
+  const captureSelection = (hot: Handsontable.Core | null) => {
+    if (!hot) return null;
+
+    const range = hot.getSelectedRangeLast();
+    if (!range) return selectionRef.current;
+
+    const start = range.getTopStartCorner();
+    const end = range.getBottomEndCorner();
+    const highlight = range.highlight;
+    const bounds: SelectionBounds = {
+      fromRow: start.row,
+      fromCol: start.col,
+      toRow: end.row,
+      toCol: end.col,
+      highlightRow: highlight.row,
+      highlightCol: highlight.col,
+    };
+
+    selectionRef.current = bounds;
+    return bounds;
   };
 
   const applyToSelection = (updater: (row: number, col: number) => void) => {
     const hot = hotRef.current?.hotInstance;
     if (!hot) return;
 
-    const cells = getSelectedCells(hot);
+    const cells = getSelectedCells(captureSelection(hot));
     if (cells.length === 0) return;
 
     hot.batch(() => {
       cells.forEach(({ row, col }) => updater(row, col));
     });
     hot.render();
-    syncSelection(hot);
+    updateSelectedState(hot);
   };
 
   const setBooleanStyle = (key: "bold" | "italic" | "underline") => {
     const hot = hotRef.current?.hotInstance;
     if (!hot) return;
 
-    const cells = getSelectedCells(hot);
+    const cells = getSelectedCells(captureSelection(hot));
     if (cells.length === 0) return;
 
     const shouldEnable = !cells.every(({ row, col }) =>
@@ -315,15 +445,18 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     const hot = hotRef.current?.hotInstance;
     if (!hot) return;
 
-    const range = hot.getSelectedRangeLast();
-    if (!range) return;
+    const bounds = captureSelection(hot);
+    if (!bounds) return;
+    if (bounds.highlightRow < 0 || bounds.highlightCol < 0) return;
 
-    const { row, col } = range.highlight;
-    if (row < 0 || col < 0) return;
-
-    hot.setDataAtCell(row, col, formulaInput, "excel-editor");
+    hot.setDataAtCell(
+      bounds.highlightRow,
+      bounds.highlightCol,
+      formulaInput,
+      "excel-editor",
+    );
     hot.render();
-    syncSelection(hot);
+    updateSelectedState(hot);
   };
 
   const undo = () =>
@@ -536,6 +669,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
             <HotTable
               ref={hotRef}
               className="ht-theme-main-dark"
+              style={hotStyle}
               data={data}
               colHeaders={columnLabels}
               rowHeaders={true}
@@ -555,52 +689,11 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
               contextMenu={true}
               filters={true}
               licenseKey="non-commercial-and-evaluation"
-              formulas={{
-                engine: HyperFormula,
-              }}
-              afterInit={() => {
-                syncSelection(hotRef.current?.hotInstance ?? null);
-              }}
-              afterSelectionEnd={() => {
-                syncSelection(hotRef.current?.hotInstance ?? null);
-              }}
-              afterChange={(_changes, source) => {
-                if (
-                  source === "loadData" ||
-                  source === "UndoRedo.undo" ||
-                  source === "UndoRedo.redo"
-                ) {
-                  syncSelection(hotRef.current?.hotInstance ?? null);
-                  return;
-                }
-                syncSelection(hotRef.current?.hotInstance ?? null);
-              }}
-              cells={(row, col) => {
-                const cellProperties = {} as Handsontable.CellProperties & {
-                  bold?: boolean;
-                  italic?: boolean;
-                  underline?: boolean;
-                  textAlign?: AlignMode;
-                  verticalAlign?: VerticalMode;
-                  textColor?: string;
-                  backgroundColor?: string;
-                  fontSize?: number;
-                };
-
-                cellProperties.renderer = spreadsheetRenderer;
-
-                if (row === 0 && col === 0) {
-                  cellProperties.bold = true;
-                  cellProperties.fontSize = 16;
-                }
-
-                return cellProperties;
-              }}
-              beforeRender={() => {
-                const hot = hotRef.current?.hotInstance;
-                if (!hot) return;
-                syncSelection(hot);
-              }}
+              formulas={formulas}
+              afterInit={handleAfterInit}
+              afterSelectionEnd={handleAfterSelectionEnd}
+              afterChange={handleAfterChange}
+              cells={renderCellProps}
             />
           </div>
         </div>

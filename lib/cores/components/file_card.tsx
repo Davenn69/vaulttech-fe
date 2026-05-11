@@ -59,8 +59,6 @@ export default function FileCard({
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const mounted = typeof window !== "undefined";
-  const resolvedStatusLabel = statusLabel ?? "No Category";
-  const resolvedStatusColor = statusColor ?? "#64748b";
 
   const updateMenuPosition = () => {
     const buttonEl = buttonRef.current;
@@ -161,21 +159,25 @@ export default function FileCard({
             isDisabled ? "" : "group-hover:bg-[#edf0f2]"
           }`}
         >
-          <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
-            <div className="inline-flex items-center gap-2 rounded-full bg-[#1a1b1d]/85 px-2.5 py-1 text-[11px] font-medium text-[#f1f3f5] shadow-[0_4px_14px_rgba(0,0,0,0.28)] backdrop-blur-sm">
-              <span
-                className="h-2.5 w-2.5 rounded-full border border-white/25"
-                style={{ backgroundColor: resolvedStatusColor }}
-              />
-              <span className="truncate">{resolvedStatusLabel}</span>
-            </div>
+          {(statusLabel && statusColor) || isFavourite ? (
+            <div className="absolute right-2 top-2 z-10 flex items-center gap-2">
+              {statusLabel && statusColor ? (
+                <div className="inline-flex items-center gap-2 rounded-full bg-[#1a1b1d]/85 px-2.5 py-1 text-[11px] font-medium text-[#f1f3f5] shadow-[0_4px_14px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+                  <span
+                    className="h-2.5 w-2.5 rounded-full border border-white/25"
+                    style={{ backgroundColor: statusColor }}
+                  />
+                  <span className="truncate">{statusLabel}</span>
+                </div>
+              ) : null}
 
-            {isFavourite && (
-              <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#1a1b1d]/85 text-[#f1c84c] shadow-[0_4px_14px_rgba(0,0,0,0.28)] backdrop-blur-sm">
-                <Star size={11} className="fill-current" />
-              </div>
-            )}
-          </div>
+              {isFavourite && (
+                <div className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#1a1b1d]/85 text-[#f1c84c] shadow-[0_4px_14px_rgba(0,0,0,0.28)] backdrop-blur-sm">
+                  <Star size={11} className="fill-current" />
+                </div>
+              )}
+            </div>
+          ) : null}
 
           <Image
             src={getFileIcon(extension)}

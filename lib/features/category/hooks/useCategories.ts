@@ -3,7 +3,8 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import { api } from "@/lib/cores/utils/api";
 import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
-import { CategoryModel } from "../types/category";
+import { CategorizedFile, CategoryModel } from "../types/category";
+import { FileModel } from "../../home/types/file";
 
 type AssignFileCategoryPayload = {
   id: string;
@@ -13,6 +14,7 @@ type AssignFileCategoryPayload = {
 
 export function useCategories(onSuccess?: () => void) {
   const [categories, setCategories] = useState<CategoryModel[]>([]);
+  const [files, setFiles] = useState<CategorizedFile[]>([]);
   const [loading, setLoading] = useState(false);
 
   const fetchCategories = useCallback(async () => {
@@ -83,11 +85,43 @@ export function useCategories(onSuccess?: () => void) {
     [fetchCategories, onSuccess],
   );
 
+  const fetchFilesByCategories = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const res =
+        await api.get<ApiResponse<Record<string, FileModel[]>>>(
+          "/category/grouped",
+        );
+
+      const mappedFiles = Object.entries(res.data).map(
+        ([name, groupedItems]) => ({
+          name,
+          file: groupedItems,
+        }),
+      );
+      setFiles(mappedFiles);
+      toast.success(res.message);
+      await fetchCategories();
+      onSuccess?.();
+    } catch (error) {
+      const message = axios.isAxiosError<ApiResponseError>(error)
+        ? error.response?.data.message
+        : "Failed to fetch files";
+
+      toast.error(message ?? "Failed to fetch files");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   return {
     categories,
     loading,
+    files,
     fetchCategories,
     assignFileCategory,
     createCategory,
+    fetchFilesByCategories,
   };
 }

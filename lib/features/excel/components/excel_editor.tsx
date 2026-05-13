@@ -5,12 +5,16 @@ import HotTable, { HotTableRef } from "@handsontable/react-wrapper";
 import Handsontable from "handsontable";
 import { textRenderer as TextRenderer } from "handsontable/renderers/textRenderer";
 import { HyperFormula } from "hyperformula";
+import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
+import { api } from "@/lib/cores/utils/api";
+import axios from "axios";
 import toast from "react-hot-toast";
 import {
   ExcelCellValue,
   ExcelWorkbookContent,
   useExcel,
 } from "../hooks/useExcel";
+import { DownloadFileUrl } from "../../home/types/file";
 import {
   Bold,
   Italic,
@@ -32,6 +36,7 @@ import {
   Eraser,
   Eye,
   Download,
+  Save,
 } from "lucide-react";
 
 type ExcelEditorProps = {
@@ -363,33 +368,6 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     [syncSelection],
   );
 
-  const handleSaveWorkbook = useCallback(async () => {
-    const hot = hotRef.current?.hotInstance;
-    if (!hot) return;
-
-    const cellMeta = hot
-      .getCellsMeta()
-      .map((meta) => ({
-        row: meta.row,
-        col: meta.col,
-        bold: meta.bold,
-        italic: meta.italic,
-        underline: meta.underline,
-        textAlign: meta.textAlign,
-        verticalAlign: meta.verticalAlign,
-        textColor: meta.textColor,
-        backgroundColor: meta.backgroundColor,
-        fontSize: meta.fontSize,
-        fontFamily: meta.fontFamily,
-      }))
-      .filter(isCustomMetaDefined);
-
-    await saveContent(workbookId, {
-      data: hot.getSourceData() as Array<Array<ExcelCellValue>>,
-      cellMeta,
-    });
-  }, [saveContent, workbookId]);
-
   const handleAfterChange = useCallback(
     (_changes: unknown, source: string) => {
       if (
@@ -638,6 +616,68 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     await renameCurrentFile(documentName);
   };
 
+  const syncCurrentDraft = async () => {
+    const hot = hotRef.current?.hotInstance;
+    if (!hot) return;
+
+    const cellMeta = hot
+      .getCellsMeta()
+      .map((meta) => ({
+        row: meta.row,
+        col: meta.col,
+        bold: meta.bold,
+        italic: meta.italic,
+        underline: meta.underline,
+        textAlign: meta.textAlign,
+        verticalAlign: meta.verticalAlign,
+        textColor: meta.textColor,
+        backgroundColor: meta.backgroundColor,
+        fontSize: meta.fontSize,
+        fontFamily: meta.fontFamily,
+      }))
+      .filter(isCustomMetaDefined);
+
+    try {
+      await saveContent(workbookId, {
+        data: hot.getSourceData() as Array<Array<ExcelCellValue>>,
+        cellMeta,
+      });
+      toast.success("Workbook saved");
+    } catch {
+      return;
+    }
+  };
+
+  const downloadAsExcel = async () => {
+    try {
+      const res = await api.get<ApiResponse<DownloadFileUrl>>(
+        `/file/download/${workbookId}`,
+      );
+
+      const { downloadUrl, name } = res.data.data;
+
+      if (!downloadUrl) {
+        throw new Error("Missing download url");
+      }
+
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = name || `${activeDocumentName}.xlsx`;
+      link.rel = "noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success("Excel file downloaded");
+    } catch (error) {
+      const message = axios.isAxiosError<ApiResponseError>(error)
+        ? error.response?.data.message
+        : "Failed to download file";
+
+      toast.error(message ?? "Failed to download file");
+    }
+  };
+
   return (
     <div className="min-h-screen  text-[#eef1f4]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1800px] flex-col gap-4 p-4 md:p-6">
@@ -687,11 +727,24 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/70">
-                <Eye size={16} />
-                {selectedAddress}
-                <span className="text-white/30">|</span>
-                <span className="max-w-[280px] truncate">{selectedValue}</span>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button onClick={syncCurrentDraft} className="tool-btn">
+                    <Save size={16} />
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                  <button onClick={downloadAsExcel} className="tool-btn">
+                    <Download size={16} />
+                    Download
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/70">
+                  <Eye size={16} />
+                  {selectedAddress}
+                  <span className="text-white/30">|</span>
+                  <span className="max-w-[280px] truncate">{selectedValue}</span>
+                </div>
               </div>
             </div>
 
@@ -805,10 +858,6 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
               <button onClick={clearFormatting} className="tool-btn">
                 <Eraser size={16} />
                 Clear style
-              </button>
-              <button onClick={handleSaveWorkbook} className="tool-btn">
-                <Download size={16} />
-                {saving ? "Saving..." : "Save"}
               </button>
             </div>
 

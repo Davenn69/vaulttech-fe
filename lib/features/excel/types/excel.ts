@@ -54,7 +54,7 @@ export type ExcelFilePayload = {
 export type ExcelApiPayload = {
   file: ExcelFilePayload;
   sheetName: string;
-  content: ExcelApiRow[];
+  content: ExcelApiRow[] | ExcelWorkbookContent;
 };
 
 export type ExcelApiResponse = {
@@ -65,18 +65,87 @@ export function apiCellToEditorValue(cell: ExcelApiCell): ExcelCellValue {
   return cell.formula ?? cell.value;
 }
 
-export function apiWorkbookToEditorContent(
-  workbook?: ExcelApiPayload,
-): ExcelWorkbookContent | undefined {
-  if (!workbook?.content) return undefined;
+function columnLabelToIndex(label: string) {
+  let result = 0;
 
-  const maxColumns = workbook.content.reduce(
+  for (const char of label.toUpperCase()) {
+    const code = char.charCodeAt(0);
+
+    if (code < 65 || code > 90) continue;
+
+    result = result * 26 + (code - 64);
+  }
+
+  return result > 0 ? result - 1 : 0;
+}
+
+function referenceToPosition(reference: string) {
+  const match = reference.match(/^([A-Z]+)(\d+)$/i);
+
+  if (!match) {
+    return { row: 0, col: 0 };
+  }
+
+  const [, columnLabel, rowLabel] = match;
+
+  return {
+    row: Math.max(Number(rowLabel) - 1, 0),
+    col: columnLabelToIndex(columnLabel),
+  };
+}
+
+function normalizeApiRows(workbook: ExcelApiPayload) {
+  const cells = workbook.content.flatMap((row) => row.filter(Boolean));
+
+  const dimensions = cells.reduce(
+    (acc, cell) => {
+      const { row, col } = referenceToPosition(cell.reference);
+      return {
+        rows: Math.max(acc.rows, row + 1),
+        cols: Math.max(acc.cols, col + 1),
+      };
+    },
+    { rows: 0, cols: 0 },
+  );
+
+  const data: ExcelCellValue[][] = Array.from({ length: dimensions.rows }, () =>
+    Array.from({ length: dimensions.cols }, () => null),
+  );
+
+  const cellMeta: ExcelCellMeta[] = [];
+
+  workbook.content.forEach((row) => {
+    row.forEach((cell) => {
+      if (!cell) return;
+
+      const { row: rowIndex, col: colIndex } = referenceToPosition(
+        cell.reference,
+      );
+
+      data[rowIndex][colIndex] = apiCellToEditorValue(cell);
+
+      const meta: ExcelCellMeta = { row: rowIndex, col: colIndex };
+      if (cell.bold) meta.bold = true;
+      if (cell.italic) meta.italic = true;
+      if (cell.underline) meta.underline = true;
+      cellMeta.push(meta);
+    });
+  });
+
+  return {
+    data,
+    cellMeta: cellMeta.length > 0 ? cellMeta : undefined,
+  };
+}
+
+function normalizeWorkbookData(workbook: ExcelWorkbookContent) {
+  const maxColumns = workbook.data.reduce(
     (max, row) => Math.max(max, row.length),
     0,
   );
 
-  const data = workbook.content.map((row) => {
-    const nextRow = row.map((cell) => (cell ? apiCellToEditorValue(cell) : null));
+  const data = workbook.data.map((row) => {
+    const nextRow = [...row];
 
     while (nextRow.length < maxColumns) {
       nextRow.push(null);
@@ -85,22 +154,20 @@ export function apiWorkbookToEditorContent(
     return nextRow;
   });
 
-  const cellMeta = workbook.content.flatMap((row, rowIndex) =>
-    row.flatMap((cell, colIndex) => {
-      if (!cell) return [];
-
-      const meta: ExcelCellMeta = { row: rowIndex, col: colIndex };
-
-      if (cell.bold) meta.bold = true;
-      if (cell.italic) meta.italic = true;
-      if (cell.underline) meta.underline = true;
-
-      return [meta];
-    }),
-  );
-
   return {
     data,
-    cellMeta: cellMeta.length > 0 ? cellMeta : undefined,
+    cellMeta: workbook.cellMeta,
   };
+}
+
+export function apiWorkbookToEditorContent(
+  workbook?: ExcelApiPayload,
+): ExcelWorkbookContent | undefined {
+  if (!workbook?.content) return undefined;
+
+  if (!Array.isArray(workbook.content)) {
+    return normalizeWorkbookData(workbook.content);
+  }
+
+  return normalizeApiRows(workbook);
 }

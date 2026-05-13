@@ -46,7 +46,8 @@ export function useExcel(id?: string) {
       setSaving(true);
 
       try {
-        const res = await api.patch<ApiResponse<ExcelApiPayload>>(
+        console.log(nextContent);
+        const res = await api.post<ApiResponse<ExcelApiPayload>>(
           "/excel/save",
           {
             id: fileId,
@@ -58,7 +59,6 @@ export function useExcel(id?: string) {
         const normalized = apiWorkbookToEditorContent(workbook) ?? nextContent;
         setContent(normalized);
         setFileName(workbook.file?.name);
-        toast.success(res.message);
         return normalized;
       } catch (error) {
         const message = axios.isAxiosError<ApiResponseError>(error)

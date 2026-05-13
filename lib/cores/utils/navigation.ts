@@ -24,6 +24,10 @@ export class PageRoutes {
     return `/pdf/${id}`;
   }
 
+  static powerpointFile(id: string) {
+    return `/powerpoint/${id}`;
+  }
+
   static recordFile(id: string) {
     return `/record/${id}`;
   }

@@ -37,6 +37,10 @@ export function openFile(
     case "pdf":
       router.push(PageRoutes.pdfFile(id));
       break;
+    case "ppt":
+    case "pptx":
+      router.push(PageRoutes.powerpointFile(id));
+      break;
     case "jpg":
     case "jpeg":
     case "png":

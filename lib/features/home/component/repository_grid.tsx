@@ -14,12 +14,10 @@ import ItemManager, { DraggableItemModel } from "../types/itemManager";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
 import { isImageExtension, openFile } from "@/lib/cores/utils/fileUtils";
 import CategorySelectMenu from "../../category/component/category_select_menu";
-import usePhotoViewer from "../hooks/usePhotoViewer";
 
 export default function RepositoryGrid({ id }: { id: string }) {
   const router = useRouter();
   const { openPhotoViewer } = usePhotoViewerContext();
-  const { fetchUrl } = usePhotoViewer(id);
   const [selectedFileForCategory, setSelectedFileForCategory] = useState<{
     id: string;
     name: string;
@@ -36,7 +34,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
       }
 
       openPhotoViewer({
-        src: photo.url,
+        src: photo.signedUrl,
         title: photo.file.name,
       });
     });

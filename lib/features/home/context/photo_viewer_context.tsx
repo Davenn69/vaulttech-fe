@@ -34,19 +34,17 @@ export function PhotoViewerProvider({
     [photoViewer],
   );
 
-  console.log(photoViewer?.src);
-
   return (
     <PhotoViewerContext.Provider value={value}>
       {children}
-      {photoViewer?.src ?? (
+      {photoViewer?.src ? (
         <PhotoViewer
           open={photoViewer !== null}
-          title={photoViewer?.title ?? ""}
-          src={photoViewer?.src!}
+          title={photoViewer.title}
+          src={photoViewer.src}
           onClose={() => setPhotoViewer(null)}
         />
-      )}
+      ) : null}
     </PhotoViewerContext.Provider>
   );
 }

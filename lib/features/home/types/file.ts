@@ -15,7 +15,7 @@ export type FileModel = {
 };
 
 export type DownloadFileUrl = {
-  name: string;
+  file: string;
   size: number;
   downloadUrl: string;
 };

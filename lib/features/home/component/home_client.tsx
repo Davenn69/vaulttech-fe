@@ -13,6 +13,7 @@ import {
   FolderModalProvider,
   useFolderModal,
 } from "../context/folder_modal_context";
+import { PhotoViewerProvider } from "../context/photo_viewer_context";
 import Sidebar from "./sidebar";
 import { useFolderList } from "../hooks/useFolderList";
 import InputModal from "./input_modal";
@@ -206,7 +207,9 @@ export default function HomeLayoutClient({
   return (
     <UploadRefreshProvider>
       <FolderModalProvider>
-        <HomeLayoutContent>{children}</HomeLayoutContent>
+        <PhotoViewerProvider>
+          <HomeLayoutContent>{children}</HomeLayoutContent>
+        </PhotoViewerProvider>
       </FolderModalProvider>
     </UploadRefreshProvider>
   );

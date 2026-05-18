@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { MoreHorizontal, Star } from "lucide-react";
+import { MoreHorizontal, Search, Send, Star, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import {
   useEffect,
@@ -11,6 +11,8 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { MenuItemType } from "../types/menu_item_type";
+import toast from "react-hot-toast";
+import { useReviewers } from "@/lib/features/invitations/hooks/useReviewers";
 
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -25,6 +27,7 @@ type FileCardType = {
   statusLabel?: string;
   statusColor?: string;
   onTap?: () => void;
+  allowInviteReviewers?: boolean;
 };
 
 const FILE_ICON_BY_EXTENSION: Record<string, string> = {
@@ -57,12 +60,26 @@ export default function FileCard({
   statusLabel,
   statusColor,
   onTap,
+  allowInviteReviewers = false,
 }: FileCardType) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [selectedReviewerId, setSelectedReviewerId] = useState<string | null>(
+    null,
+  );
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const mounted = typeof window !== "undefined";
+  const {
+    query,
+    setQuery,
+    reviewers,
+    loading,
+    clearReviewers,
+    refreshReviewers,
+    sendInvite,
+  } = useReviewers(inviteOpen);
 
   const updateMenuPosition = () => {
     const buttonEl = buttonRef.current;
@@ -119,6 +136,49 @@ export default function FileCard({
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
   }, [menuOpen]);
+
+  useEffect(() => {
+    if (!inviteOpen) return undefined;
+
+    refreshReviewers();
+
+    const handler = (e: MouseEvent) => {
+      const target = e.target;
+      if (!(target instanceof Node)) return;
+
+      if (target instanceof Element && target.closest("[data-invite-sheet]")) {
+        return;
+      }
+
+      setInviteOpen(false);
+    };
+
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [inviteOpen, refreshReviewers]);
+
+  const toggleReviewer = (reviewerId: string) => {
+    setSelectedReviewerId((current) =>
+      current === reviewerId ? null : reviewerId,
+    );
+  };
+
+  const handleSendInvites = () => {
+    if (!selectedReviewerId) {
+      toast.error("Pilih minimal satu reviewer dulu.");
+      return;
+    }
+
+    const selectedReviewer = reviewers.find(
+      (reviewer) => reviewer.id === selectedReviewerId,
+    );
+
+    sendInvite(selectedReviewer?.id!, id!);
+
+    setInviteOpen(false);
+    setSelectedReviewerId(null);
+    clearReviewers();
+  };
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -268,6 +328,155 @@ export default function FileCard({
                 {label}
               </button>
             ))}
+            {allowInviteReviewers && (
+              <button
+                type="button"
+                onClick={() => {
+                  setMenuOpen(false);
+                  setInviteOpen(true);
+                }}
+                className="
+                  block w-full px-2.5 py-[7px] text-left text-[13px] rounded-lg
+                  text-[#7a7d82] transition-all duration-100
+                  hover:bg-[#252729] hover:text-[#e8e9ea]
+                "
+              >
+                Invite Reviewer
+              </button>
+            )}
+          </div>,
+          document.body,
+        )}
+
+      {mounted &&
+        inviteOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[1100] bg-black/65 backdrop-blur-[2px]">
+            <div className="flex h-full items-center justify-center px-4 py-4">
+              <div
+                data-invite-sheet
+                className="
+                  flex h-[560px] w-[640px] max-h-[calc(100vh-2rem)]
+                  max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-3xl
+                  border border-[#2a2c2e] bg-[#111213]
+                  shadow-[0_24px_60px_rgba(0,0,0,0.55)]
+                "
+              >
+                <div className="flex items-center justify-between border-b border-[#222426] px-5 py-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-[#f6f7f8]">
+                      Invite reviewers
+                    </h3>
+                    <p className="text-sm text-[#7a7d82]">
+                      Pilih user untuk review file{" "}
+                      <span className="text-[#e8e9ea]">{name}</span>.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setInviteOpen(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-xl text-[#7a7d82] transition-colors hover:bg-[#252729] hover:text-[#e8e9ea]"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto p-4">
+                  <div className="mb-4 relative">
+                    <Search
+                      size={15}
+                      className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#4a4d52]"
+                    />
+                    <input
+                      type="text"
+                      value={query}
+                      onChange={(event) => setQuery(event.target.value)}
+                      placeholder="Search reviewer..."
+                      className="
+                        w-full rounded-2xl border border-[#2a2c2e] bg-[#1a1b1d]
+                        py-3 pl-9 pr-4 text-sm text-[#e8e9ea]
+                        placeholder-[#4a4d52] outline-none transition-colors
+                        focus:border-[#6c5ce7]
+                      "
+                    />
+                  </div>
+
+                  <div className="grid gap-3">
+                    {loading ? (
+                      <div className="rounded-2xl border border-dashed border-[#2a2c2e] bg-[#1a1b1d] px-4 py-10 text-center text-sm text-[#7a7d82]">
+                        Loading reviewers...
+                      </div>
+                    ) : reviewers.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-[#2a2c2e] bg-[#1a1b1d] px-4 py-10 text-center text-sm text-[#7a7d82]">
+                        No reviewer found for &quot;{query.trim()}&quot;
+                      </div>
+                    ) : (
+                      reviewers.map((reviewer) => {
+                        const selected = selectedReviewerId === reviewer.id;
+
+                        return (
+                          <button
+                            key={reviewer.id}
+                            type="button"
+                            onClick={() => toggleReviewer(reviewer.id)}
+                            className={`flex items-center justify-between gap-4 rounded-2xl border px-4 py-3 text-left transition-colors ${
+                              selected
+                                ? "border-[#6c5ce7] bg-[rgba(108,92,231,0.12)]"
+                                : "border-[#2a2c2e] bg-[#1a1b1d] hover:bg-[#252729]"
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-medium text-[#f6f7f8]">
+                                {reviewer.username}
+                              </div>
+                            </div>
+
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs ${
+                                selected
+                                  ? "bg-[#6c5ce7] text-white"
+                                  : "bg-[#252729] text-[#7a7d82]"
+                              }`}
+                            >
+                              {selected ? "Selected" : "Select"}
+                            </span>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 border-t border-[#222426] px-5 py-4">
+                  <div className="text-sm text-[#7a7d82]">
+                    {selectedReviewerId
+                      ? "1 reviewer selected"
+                      : "No reviewer selected"}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setInviteOpen(false);
+                        setSelectedReviewerId(null);
+                        clearReviewers();
+                      }}
+                      className="rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm text-[#e8e9ea] transition-colors hover:bg-[#252729]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendInvites}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#6c5ce7] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#7d6ef0]"
+                    >
+                      <Send size={15} />
+                      Send invite
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>,
           document.body,
         )}

@@ -33,6 +33,10 @@ const FILE_ICON_BY_EXTENSION: Record<string, string> = {
   xls: "/assets/icons/Excel_Icon.svg",
   xlsx: "/assets/icons/Excel_Icon.svg",
   pdf: "/assets/icons/Pdf_Icon.svg",
+  pptx: "/assets/icons/Ppt_Icon.svg",
+  jpg: "/assets/icons/Photo_Icon.svg",
+  png: "/assets/icons/Photo_Icon.svg",
+  jpeg: "/assets/icons/Photo_Icon.svg",
 };
 
 function getFileIcon(extension: string) {

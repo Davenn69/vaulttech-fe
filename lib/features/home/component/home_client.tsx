@@ -19,7 +19,7 @@ import { useFolderList } from "../hooks/useFolderList";
 import InputModal from "./input_modal";
 import { useFileList } from "../hooks/useFileList";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
-import { Clock, FolderOpen, Star, Trash2, Cable } from "lucide-react";
+import { Cable, Clock, FolderOpen, Mail, Star, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 function getActiveNav(pathname: string) {

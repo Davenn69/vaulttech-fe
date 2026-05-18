@@ -6,6 +6,8 @@ export class PageRoutes {
   static readonly repositoryFavourites = "/repo/favourites";
   static readonly repositoryTrash = "/repo/trash";
   static readonly repositoryCategory = "/repo/category";
+  static readonly invitations = "/invitations";
+  static readonly invitationsHistory = "/invitations/history";
 
   static repositoryRoot() {
     const folderId = folderStorage.getParentFolderId();
@@ -34,5 +36,9 @@ export class PageRoutes {
 
   static excelFile(id: string) {
     return `/excel/${id}`;
+  }
+
+  static repositoryInvitationDetail(id: string) {
+    return `/invitations/${id}`;
   }
 }

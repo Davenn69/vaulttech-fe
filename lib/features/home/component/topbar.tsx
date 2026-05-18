@@ -8,6 +8,7 @@ import {
   Search,
   User,
   LogOut,
+  Mail,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -195,6 +196,19 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
               shadow-[0_16px_40px_rgba(0,0,0,0.45)]
             "
           >
+            <button
+              type="button"
+              onClick={() => {
+                router.push(PageRoutes.invitations);
+              }}
+              className="
+                flex w-full items-center gap-2 px-4 py-3 text-left text-sm
+                text-[#e8e9ea] transition-colors hover:bg-[#252729]
+              "
+            >
+              <Mail size={16} className="text-[#fd7c5a]" />
+              Invitation
+            </button>
             <button
               type="button"
               onClick={handleLogout}

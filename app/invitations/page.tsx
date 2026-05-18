@@ -1,16 +1,10 @@
 "use client";
 
 import PageWrapper from "@/lib/cores/components/page_wrapper";
-import { PageRoutes } from "@/lib/cores/utils/navigation";
 import { useRouter } from "next/navigation";
-import {
-  CheckCircle2,
-  ChevronRight,
-  Clock3,
-  Inbox,
-  XCircle,
-} from "lucide-react";
+import { CheckCircle2, ChevronRight, Clock3, XCircle } from "lucide-react";
 import { useInvitations } from "@/lib/features/invitations/hooks/useInvitations";
+import { PageRoutes } from "@/lib/cores/utils/navigation";
 
 function formatDate(dateValue: string) {
   return new Intl.DateTimeFormat("en-GB", {
@@ -29,56 +23,15 @@ export default function InvitationsPage() {
 
   return (
     <PageWrapper isLoading={!hydrated}>
-      <main className="min-h-0 flex-1 overflow-y-auto px-6 py-6 scrollbar-thin scrollbar-thumb-[#2a2c2e] scrollbar-track-transparent">
-        <section className="mb-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-[#222426] bg-[#151618] p-5">
-            <div className="flex items-center gap-3 text-[#7a7d82]">
-              <Inbox size={18} />
-              <span className="text-sm">Pending invitations</span>
-            </div>
-            <p className="mt-3 text-3xl font-semibold text-[#f6f7f8]">
-              {pendingInvitations.length}
-            </p>
-            <p className="mt-1 text-sm text-[#7a7d82]">
-              Invitation yang menunggu keputusan.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-[#222426] bg-[#151618] p-5">
-            <div className="flex items-center gap-3 text-[#7a7d82]">
-              <CheckCircle2 size={18} className="text-[#2ecc71]" />
-              <span className="text-sm">Fast approval</span>
-            </div>
-            <p className="mt-3 text-3xl font-semibold text-[#f6f7f8]">
-              Accept
-            </p>
-            <p className="mt-1 text-sm text-[#7a7d82]">
-              Buka detail lalu terima akses dengan satu klik.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-[#222426] bg-[#151618] p-5">
-            <div className="flex items-center gap-3 text-[#7a7d82]">
-              <XCircle size={18} className="text-[#fd7c5a]" />
-              <span className="text-sm">Safe decline</span>
-            </div>
-            <p className="mt-3 text-3xl font-semibold text-[#f6f7f8]">
-              Decline
-            </p>
-            <p className="mt-1 text-sm text-[#7a7d82]">
-              Tolak undangan yang tidak relevan tanpa meninggalkan halaman.
-            </p>
-          </div>
-        </section>
-
+      <main className="flex min-h-screen flex-1 flex-col overflow-y-auto bg-[#0f1011] px-6 py-6 scrollbar-thin scrollbar-thumb-[#2a2c2e] scrollbar-track-transparent">
         <section className="rounded-3xl border border-[#222426] bg-[#151618] p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-[#f6f7f8]">
-                Pending invitations
+                Pending invitations ({pendingInvitations.length})
               </h2>
-              <p className="text-sm text-[#7a7d82]">
-                Pilih invitation untuk melihat detail, atau langsung ambil aksi.
+              <p className="mt-1 text-sm text-[#7a7d82]">
+                Review pending requests, then accept or decline.
               </p>
             </div>
           </div>
@@ -125,7 +78,10 @@ export default function InvitationsPage() {
                       </p>
 
                       <div className="text-sm text-[#7a7d82]">
-                        Invited by <span className="text-[#e8e9ea]">{item.inviterName}</span>{" "}
+                        Invited by{" "}
+                        <span className="text-[#e8e9ea]">
+                          {item.inviterName}
+                        </span>{" "}
                         on {formatDate(item.sentAt)}
                       </div>
                     </div>
@@ -133,7 +89,11 @@ export default function InvitationsPage() {
                     <div className="flex shrink-0 flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() => router.push(PageRoutes.repositoryInvitationDetail(item.id))}
+                        onClick={() =>
+                          router.push(
+                            PageRoutes.repositoryInvitationDetail(item.id),
+                          )
+                        }
                         className="inline-flex items-center gap-2 rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm text-[#e8e9ea] transition-colors hover:bg-[#252729]"
                       >
                         View detail

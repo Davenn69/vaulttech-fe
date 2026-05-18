@@ -181,9 +181,35 @@ export function useFileList(onUploadSuccess?: () => void) {
       } catch (error) {
         const message = axios.isAxiosError<ApiResponseError>(error)
           ? error.response?.data.message
-          : "Failed to add to favourites";
+          : "Failed to create file";
 
-        toast.error(message ?? "Failed to add to favourites");
+        toast.error(message ?? "Failed to create file");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onUploadSuccess],
+  );
+
+  const createExcelFile = useCallback(
+    async (id: string) => {
+      setLoading(true);
+
+      try {
+        const res = await api.post<ApiResponse<FileModel>>(`/excel/create`, {
+          folderId: id,
+        });
+
+        toast.success(res.message);
+        onUploadSuccess?.();
+
+        router.push(PageRoutes.excelFile(res.data.id));
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to create file";
+
+        toast.error(message ?? "Failed to create file");
       } finally {
         setLoading(false);
       }
@@ -201,5 +227,6 @@ export function useFileList(onUploadSuccess?: () => void) {
     deleteFile,
     downloadFile,
     createWordFile,
+    createExcelFile,
   };
 }

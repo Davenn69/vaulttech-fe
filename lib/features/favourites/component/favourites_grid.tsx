@@ -4,7 +4,7 @@ import FileCard from "@/lib/cores/components/file_card";
 import FolderChip from "@/lib/cores/components/folder_chip";
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import useFavourites from "../hooks/useFavourites";
 import { useFolderModal } from "../../home/context/folder_modal_context";
 import { useUploadRefresh } from "../../home/context/upload_refresh_context";
@@ -12,9 +12,14 @@ import { useFileList } from "../../home/hooks/useFileList";
 import { useFolderList } from "../../home/hooks/useFolderList";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
 import { openFile } from "@/lib/cores/utils/fileUtils";
+import CategorySelectMenu from "../../category/component/category_select_menu";
 
 export default function FavouriteGrid() {
   const router = useRouter();
+  const [selectedFileForCategory, setSelectedFileForCategory] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const {
     loading,
     folders,
@@ -83,6 +88,8 @@ export default function FavouriteGrid() {
               isFavourite={file.isFavourite}
               name={file.name}
               extension={file.extension}
+              statusLabel={file.category?.name}
+              statusColor={file.category?.color}
               onTap={() => openFile(file.extension, file.id, router)}
               menuItems={[
                 {
@@ -108,6 +115,16 @@ export default function FavouriteGrid() {
                   },
                 },
                 {
+                  label: "Set Category",
+                  danger: false,
+                  onTap: () => {
+                    setSelectedFileForCategory({
+                      id: file.id,
+                      name: file.name,
+                    });
+                  },
+                },
+                {
                   label: "History",
                   danger: false,
                   onTap: () => {
@@ -123,6 +140,14 @@ export default function FavouriteGrid() {
             />
           ))}
         </div>
+
+        <CategorySelectMenu
+          open={selectedFileForCategory !== null}
+          fileId={selectedFileForCategory?.id ?? ""}
+          fileName={selectedFileForCategory?.name ?? ""}
+          onClose={() => setSelectedFileForCategory(null)}
+          onSuccess={notifyUploadSuccess}
+        />
       </main>
     </PageWrapper>
   );

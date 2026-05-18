@@ -19,6 +19,7 @@ type SidebarProps = {
   onCreateFolder: () => void;
   onNavigate: (id: string) => void;
   onCreateWordFile: () => void;
+  onCreateExcelFile: () => void;
   navItems: SidebarNavItem[];
 };
 
@@ -29,6 +30,7 @@ export default function Sidebar({
   onNavigate,
   navItems,
   onCreateWordFile,
+  onCreateExcelFile,
 }: SidebarProps) {
   const router = useRouter();
   const [addButtonOpen, setAddButtonOpen] = useState(false);
@@ -71,12 +73,9 @@ export default function Sidebar({
     {
       label: "Excel",
       iconRoute: "/assets/icons/Excel_Icon.svg",
-      onClick: () => {},
-    },
-    {
-      label: "Pdf",
-      iconRoute: "/assets/icons/Pdf_Icon.svg",
-      onClick: () => {},
+      onClick: () => {
+        onCreateExcelFile();
+      },
     },
   ];
 

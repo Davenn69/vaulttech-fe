@@ -1,10 +1,20 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import HotTable, { HotTableRef } from "@handsontable/react-wrapper";
 import Handsontable from "handsontable";
 import { textRenderer as TextRenderer } from "handsontable/renderers/textRenderer";
 import { HyperFormula } from "hyperformula";
+import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
+import { api } from "@/lib/cores/utils/api";
+import axios from "axios";
+import toast from "react-hot-toast";
+import {
+  ExcelCellValue,
+  ExcelWorkbookContent,
+  useExcel,
+} from "../hooks/useExcel";
+import { DownloadFileUrl } from "../../home/types/file";
 import {
   Bold,
   Italic,
@@ -12,7 +22,6 @@ import {
   Undo2,
   Redo2,
   Trash2,
-  Sheet as SheetIcon,
   Sigma,
   AlignLeft,
   AlignCenter,
@@ -27,6 +36,7 @@ import {
   Eraser,
   Eye,
   Download,
+  Save,
 } from "lucide-react";
 
 type ExcelEditorProps = {
@@ -35,6 +45,14 @@ type ExcelEditorProps = {
 
 type AlignMode = "left" | "center" | "right" | "justify";
 type VerticalMode = "top" | "middle" | "bottom";
+type SelectionBounds = {
+  fromRow: number;
+  fromCol: number;
+  toRow: number;
+  toCol: number;
+  highlightRow: number;
+  highlightCol: number;
+};
 
 const ROWS = 40;
 const COLS = 16;
@@ -60,16 +78,6 @@ function createInitialData(rows: number, cols: number) {
     Array.from({ length: cols }, () => ""),
   );
 
-  data[0][0] = "Revenue";
-  data[0][1] = 3200;
-  data[0][2] = 1500;
-  data[0][3] = "=B1-C1";
-  data[1][0] = "Growth";
-  data[1][1] = 0.18;
-  data[1][2] = "=B1*B2";
-  data[2][0] = "Note";
-  data[2][1] = "Select cells and use the toolbar to format them.";
-
   return data;
 }
 
@@ -88,16 +96,13 @@ function formatAddress(row: number, col: number) {
   return `${toColumnLabel(col)}${row + 1}`;
 }
 
-function getSelectedCells(hot: Handsontable.Core) {
-  const range = hot.getSelectedRangeLast();
-  if (!range) return [];
+function getSelectedCells(bounds: SelectionBounds | null) {
+  if (!bounds) return [];
 
-  const start = range.getTopStartCorner();
-  const end = range.getBottomEndCorner();
   const cells: Array<{ row: number; col: number }> = [];
 
-  for (let row = start.row; row <= end.row; row += 1) {
-    for (let col = start.col; col <= end.col; col += 1) {
+  for (let row = bounds.fromRow; row <= bounds.toRow; row += 1) {
+    for (let col = bounds.fromCol; col <= bounds.toCol; col += 1) {
       cells.push({ row, col });
     }
   }
@@ -134,8 +139,35 @@ function spreadsheetRenderer(...args: Parameters<typeof TextRenderer>) {
   td.style.whiteSpace = "pre-wrap";
 }
 
+const FORMATTING_KEYS = [
+  "bold",
+  "italic",
+  "underline",
+  "textAlign",
+  "verticalAlign",
+  "textColor",
+  "backgroundColor",
+  "fontSize",
+  "fontFamily",
+] as const;
+
+type ExcelCellMetaEntry = NonNullable<ExcelWorkbookContent["cellMeta"]>[number];
+
+function isCustomMetaDefined(meta: ExcelCellMetaEntry) {
+  return FORMATTING_KEYS.some((key) => meta[key] !== undefined);
+}
+
 export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const hotRef = useRef<HotTableRef | null>(null);
+  const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const selectionRef = useRef<SelectionBounds | null>({
+    fromRow: 0,
+    fromCol: 0,
+    toRow: 0,
+    toCol: 0,
+    highlightRow: 0,
+    highlightCol: 0,
+  });
   const [selectedAddress, setSelectedAddress] = useState("A1");
   const [formulaInput, setFormulaInput] = useState("Revenue");
   const [selectedValue, setSelectedValue] = useState<string>("Revenue");
@@ -149,11 +181,37 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     backgroundColor?: string;
     fontSize?: number;
   }>({});
+  const { loading, saving, content, saveContent, fileName, renameFile } =
+    useExcel(workbookId);
+  const [documentName, setDocumentName] = useState("Spreadsheet");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const previousNameRef = useRef("Spreadsheet");
+  const activeDocumentName = fileName ?? documentName;
 
-  const data = useMemo(() => createInitialData(ROWS, COLS), []);
+  const [tableData, setTableData] = useState<Array<Array<ExcelCellValue>>>(() =>
+    createInitialData(ROWS, COLS),
+  );
   const columnLabels = useMemo(() => buildColumns(COLS), []);
+  const hotStyle = useMemo(() => ({ width: "100%", height: "100%" }), []);
+  const formulas = useMemo(() => ({ engine: HyperFormula }), []);
 
-  const syncSelection = (hot: Handsontable.Core | null) => {
+  useEffect(() => {
+    if (!fileName) return;
+
+    setDocumentName(fileName);
+    previousNameRef.current = fileName;
+    document.title = `${fileName} - Excel editor`;
+  }, [fileName]);
+
+  useEffect(() => {
+    if (!isEditingName) return;
+
+    nameInputRef.current?.focus();
+    nameInputRef.current?.select();
+  }, [isEditingName]);
+
+  const updateSelectedState = useCallback((hot: Handsontable.Core | null) => {
     if (!hot) return;
 
     const range = hot.getSelectedRangeLast();
@@ -167,11 +225,11 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     const rawValue = hot.getSourceDataAtCell(row, col);
     const renderedValue = hot.getDataAtCell(row, col);
     const meta = hot.getCellMeta(row, col) as typeof selectedMeta;
-
-    setSelectedAddress(formatAddress(row, col));
-    setFormulaInput(rawValue == null ? "" : String(rawValue));
-    setSelectedValue(renderedValue == null ? "" : String(renderedValue));
-    setSelectedMeta({
+    const nextAddress = formatAddress(row, col);
+    const nextFormulaInput = rawValue == null ? "" : String(rawValue);
+    const nextSelectedValue =
+      renderedValue == null ? "" : String(renderedValue);
+    const nextSelectedMeta = {
       bold: meta.bold,
       italic: meta.italic,
       underline: meta.underline,
@@ -180,28 +238,214 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       textColor: meta.textColor,
       backgroundColor: meta.backgroundColor,
       fontSize: meta.fontSize,
+    };
+
+    selectionRef.current = {
+      fromRow: range.getTopStartCorner().row,
+      fromCol: range.getTopStartCorner().col,
+      toRow: range.getBottomEndCorner().row,
+      toCol: range.getBottomEndCorner().col,
+      highlightRow: row,
+      highlightCol: col,
+    };
+
+    setSelectedAddress((currentValue) =>
+      currentValue === nextAddress ? currentValue : nextAddress,
+    );
+    setFormulaInput((currentValue) =>
+      currentValue === nextFormulaInput ? currentValue : nextFormulaInput,
+    );
+    setSelectedValue((currentValue) =>
+      currentValue === nextSelectedValue ? currentValue : nextSelectedValue,
+    );
+    setSelectedMeta((currentValue) => {
+      const isSame =
+        currentValue.bold === nextSelectedMeta.bold &&
+        currentValue.italic === nextSelectedMeta.italic &&
+        currentValue.underline === nextSelectedMeta.underline &&
+        currentValue.textAlign === nextSelectedMeta.textAlign &&
+        currentValue.verticalAlign === nextSelectedMeta.verticalAlign &&
+        currentValue.textColor === nextSelectedMeta.textColor &&
+        currentValue.backgroundColor === nextSelectedMeta.backgroundColor &&
+        currentValue.fontSize === nextSelectedMeta.fontSize;
+
+      return isSame ? currentValue : nextSelectedMeta;
     });
+  }, []);
+
+  const syncSelection = useCallback(
+    (hot: Handsontable.Core | null) => {
+      updateSelectedState(hot);
+    },
+    [updateSelectedState],
+  );
+
+  const applyWorkbookContent = useCallback(
+    (hot: Handsontable.Core, workbook?: ExcelWorkbookContent) => {
+      if (!workbook) return;
+
+      const nextData =
+        workbook.data.length > 0
+          ? workbook.data
+          : createInitialData(ROWS, COLS);
+
+      setTableData(nextData);
+
+      hot.batch(() => {
+        FORMATTING_KEYS.forEach((key) => {
+          for (let row = 0; row < hot.countRows(); row += 1) {
+            for (let col = 0; col < hot.countCols(); col += 1) {
+              hot.removeCellMeta(row, col, key);
+            }
+          }
+        });
+
+        workbook.cellMeta?.forEach((meta) => {
+          if (!isCustomMetaDefined(meta)) return;
+
+          const {
+            row,
+            col,
+            bold,
+            italic,
+            underline,
+            textAlign,
+            verticalAlign,
+            textColor,
+            backgroundColor,
+            fontSize,
+            fontFamily,
+          } = meta;
+
+          if (bold !== undefined) hot.setCellMeta(row, col, "bold", bold);
+          if (italic !== undefined) hot.setCellMeta(row, col, "italic", italic);
+          if (underline !== undefined)
+            hot.setCellMeta(row, col, "underline", underline);
+          if (textAlign !== undefined)
+            hot.setCellMeta(row, col, "textAlign", textAlign);
+          if (verticalAlign !== undefined)
+            hot.setCellMeta(row, col, "verticalAlign", verticalAlign);
+          if (textColor !== undefined)
+            hot.setCellMeta(row, col, "textColor", textColor);
+          if (backgroundColor !== undefined)
+            hot.setCellMeta(row, col, "backgroundColor", backgroundColor);
+          if (fontSize !== undefined)
+            hot.setCellMeta(row, col, "fontSize", fontSize);
+          if (fontFamily !== undefined)
+            hot.setCellMeta(row, col, "fontFamily", fontFamily);
+        });
+      });
+
+      hot.render();
+      updateSelectedState(hot);
+    },
+    [updateSelectedState],
+  );
+
+  useEffect(() => {
+    if (!content) return;
+
+    const hot = hotRef.current?.hotInstance;
+    if (!hot) return;
+
+    applyWorkbookContent(hot, content);
+  }, [applyWorkbookContent, content]);
+
+  const handleAfterInit = useCallback(() => {
+    syncSelection(hotRef.current?.hotInstance ?? null);
+  }, [syncSelection]);
+
+  const handleAfterSelectionEnd = useCallback(
+    (
+      _row: number,
+      _column: number,
+      _row2: number,
+      _column2: number,
+      _selectionLayerLevel: number,
+    ) => {
+      syncSelection(hotRef.current?.hotInstance ?? null);
+    },
+    [syncSelection],
+  );
+
+  const handleAfterChange = useCallback(
+    (_changes: unknown, source: string) => {
+      if (
+        source === "loadData" ||
+        source === "UndoRedo.undo" ||
+        source === "UndoRedo.redo"
+      ) {
+        updateSelectedState(hotRef.current?.hotInstance ?? null);
+        return;
+      }
+      updateSelectedState(hotRef.current?.hotInstance ?? null);
+    },
+    [updateSelectedState],
+  );
+
+  const renderCellProps = useCallback((row: number, col: number) => {
+    const cellProperties = {} as Handsontable.CellProperties & {
+      bold?: boolean;
+      italic?: boolean;
+      underline?: boolean;
+      textAlign?: AlignMode;
+      verticalAlign?: VerticalMode;
+      textColor?: string;
+      backgroundColor?: string;
+      fontSize?: number;
+    };
+
+    cellProperties.renderer = spreadsheetRenderer;
+
+    if (row === 0 && col === 0) {
+      cellProperties.bold = true;
+      cellProperties.fontSize = 16;
+    }
+
+    return cellProperties;
+  }, []);
+
+  const captureSelection = (hot: Handsontable.Core | null) => {
+    if (!hot) return null;
+
+    const range = hot.getSelectedRangeLast();
+    if (!range) return selectionRef.current;
+
+    const start = range.getTopStartCorner();
+    const end = range.getBottomEndCorner();
+    const highlight = range.highlight;
+    const bounds: SelectionBounds = {
+      fromRow: start.row,
+      fromCol: start.col,
+      toRow: end.row,
+      toCol: end.col,
+      highlightRow: highlight.row,
+      highlightCol: highlight.col,
+    };
+
+    selectionRef.current = bounds;
+    return bounds;
   };
 
   const applyToSelection = (updater: (row: number, col: number) => void) => {
     const hot = hotRef.current?.hotInstance;
     if (!hot) return;
 
-    const cells = getSelectedCells(hot);
+    const cells = getSelectedCells(captureSelection(hot));
     if (cells.length === 0) return;
 
     hot.batch(() => {
       cells.forEach(({ row, col }) => updater(row, col));
     });
     hot.render();
-    syncSelection(hot);
+    updateSelectedState(hot);
   };
 
   const setBooleanStyle = (key: "bold" | "italic" | "underline") => {
     const hot = hotRef.current?.hotInstance;
     if (!hot) return;
 
-    const cells = getSelectedCells(hot);
+    const cells = getSelectedCells(captureSelection(hot));
     if (cells.length === 0) return;
 
     const shouldEnable = !cells.every(({ row, col }) =>
@@ -315,15 +559,18 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     const hot = hotRef.current?.hotInstance;
     if (!hot) return;
 
-    const range = hot.getSelectedRangeLast();
-    if (!range) return;
+    const bounds = captureSelection(hot);
+    if (!bounds) return;
+    if (bounds.highlightRow < 0 || bounds.highlightCol < 0) return;
 
-    const { row, col } = range.highlight;
-    if (row < 0 || col < 0) return;
-
-    hot.setDataAtCell(row, col, formulaInput, "excel-editor");
+    hot.setDataAtCell(
+      bounds.highlightRow,
+      bounds.highlightCol,
+      formulaInput,
+      "excel-editor",
+    );
     hot.render();
-    syncSelection(hot);
+    updateSelectedState(hot);
   };
 
   const undo = () =>
@@ -339,32 +586,165 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       ) as Handsontable.plugins.UndoRedo | null
     )?.redo();
 
+  const renameCurrentFile = async (nextName: string) => {
+    if (!workbookId || renaming) return;
+
+    const trimmedName = nextName.trim();
+
+    if (!trimmedName) {
+      toast.error("Nama file tidak boleh kosong");
+      return;
+    }
+
+    setRenaming(true);
+
+    try {
+      await renameFile(workbookId, trimmedName);
+      setDocumentName(trimmedName);
+      previousNameRef.current = trimmedName;
+      document.title = `${trimmedName} - Excel editor`;
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const submitRename = async () => {
+    setIsEditingName(false);
+
+    if (documentName === previousNameRef.current) return;
+
+    await renameCurrentFile(documentName);
+  };
+
+  const syncCurrentDraft = async () => {
+    const hot = hotRef.current?.hotInstance;
+    if (!hot) return;
+
+    const cellMeta = hot
+      .getCellsMeta()
+      .map((meta) => ({
+        row: meta.row,
+        col: meta.col,
+        bold: meta.bold,
+        italic: meta.italic,
+        underline: meta.underline,
+        textAlign: meta.textAlign,
+        verticalAlign: meta.verticalAlign,
+        textColor: meta.textColor,
+        backgroundColor: meta.backgroundColor,
+        fontSize: meta.fontSize,
+        fontFamily: meta.fontFamily,
+      }))
+      .filter(isCustomMetaDefined);
+
+    try {
+      await saveContent(workbookId, {
+        data: hot.getSourceData() as Array<Array<ExcelCellValue>>,
+        cellMeta,
+      });
+      toast.success("Workbook saved");
+    } catch {
+      return;
+    }
+  };
+
+  const downloadAsExcel = async () => {
+    try {
+      const res = await api.get<ApiResponse<DownloadFileUrl>>(
+        `/file/download/${workbookId}`,
+      );
+
+      const { downloadUrl, name } = res.data.data;
+
+      if (!downloadUrl) {
+        throw new Error("Missing download url");
+      }
+
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = name || `${activeDocumentName}.xlsx`;
+      link.rel = "noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+
+      toast.success("Excel file downloaded");
+    } catch (error) {
+      const message = axios.isAxiosError<ApiResponseError>(error)
+        ? error.response?.data.message
+        : "Failed to download file";
+
+      toast.error(message ?? "Failed to download file");
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(34,108,255,0.2),_transparent_34%),linear-gradient(180deg,_#101214_0%,_#0b0d10_100%)] text-[#eef1f4]">
+    <div className="min-h-screen  text-[#eef1f4]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1800px] flex-col gap-4 p-4 md:p-6">
         <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-xl">
           <div className="flex flex-col gap-4 border-b border-white/10 px-4 py-4 md:px-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-[#226cff] to-[#33c481] text-white shadow-[0_12px_30px_rgba(34,108,255,0.35)]">
-                  <SheetIcon size={22} />
-                </div>
                 <div>
-                  <p className="text-xs uppercase tracking-[0.28em] text-white/50">
-                    Workbook
-                  </p>
-                  <h1 className="text-lg font-semibold text-white md:text-2xl">
-                    Excel Editor
-                  </h1>
-                  <p className="text-sm text-white/55">File ID: {workbookId}</p>
+                  {isEditingName ? (
+                    <input
+                      ref={nameInputRef}
+                      value={documentName}
+                      onChange={(event) => setDocumentName(event.target.value)}
+                      onBlur={() => submitRename()}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          submitRename();
+                          return;
+                        }
+
+                        if (event.key === "Escape") {
+                          event.preventDefault();
+                          setDocumentName(previousNameRef.current);
+                          setIsEditingName(false);
+                        }
+                      }}
+                      disabled={renaming}
+                      className="mt-2 w-full bg-transparent text-2xl font-semibold text-[#f5f6f7] outline-none placeholder:text-[#7a7d82] disabled:opacity-60"
+                      placeholder="Nama file"
+                    />
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        previousNameRef.current = activeDocumentName;
+                        setIsEditingName(true);
+                      }}
+                      className="mt-2 block w-full min-w-0 text-left"
+                      title="Klik untuk ubah nama file"
+                    >
+                      <h1 className="truncate text-2xl font-semibold text-[#f5f6f7] transition-colors hover:text-white">
+                        {activeDocumentName}
+                      </h1>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/70">
-                <Eye size={16} />
-                {selectedAddress}
-                <span className="text-white/30">|</span>
-                <span className="max-w-[280px] truncate">{selectedValue}</span>
+              <div className="flex flex-col items-end gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button onClick={syncCurrentDraft} className="tool-btn">
+                    <Save size={16} />
+                    {saving ? "Saving..." : "Save"}
+                  </button>
+                  <button onClick={downloadAsExcel} className="tool-btn">
+                    <Download size={16} />
+                    Download
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white/70">
+                  <Eye size={16} />
+                  {selectedAddress}
+                  <span className="text-white/30">|</span>
+                  <span className="max-w-[280px] truncate">{selectedValue}</span>
+                </div>
               </div>
             </div>
 
@@ -536,7 +916,8 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
             <HotTable
               ref={hotRef}
               className="ht-theme-main-dark"
-              data={data}
+              style={hotStyle}
+              data={tableData}
               colHeaders={columnLabels}
               rowHeaders={true}
               colWidths={120}
@@ -555,52 +936,11 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
               contextMenu={true}
               filters={true}
               licenseKey="non-commercial-and-evaluation"
-              formulas={{
-                engine: HyperFormula,
-              }}
-              afterInit={() => {
-                syncSelection(hotRef.current?.hotInstance ?? null);
-              }}
-              afterSelectionEnd={() => {
-                syncSelection(hotRef.current?.hotInstance ?? null);
-              }}
-              afterChange={(_changes, source) => {
-                if (
-                  source === "loadData" ||
-                  source === "UndoRedo.undo" ||
-                  source === "UndoRedo.redo"
-                ) {
-                  syncSelection(hotRef.current?.hotInstance ?? null);
-                  return;
-                }
-                syncSelection(hotRef.current?.hotInstance ?? null);
-              }}
-              cells={(row, col) => {
-                const cellProperties = {} as Handsontable.CellProperties & {
-                  bold?: boolean;
-                  italic?: boolean;
-                  underline?: boolean;
-                  textAlign?: AlignMode;
-                  verticalAlign?: VerticalMode;
-                  textColor?: string;
-                  backgroundColor?: string;
-                  fontSize?: number;
-                };
-
-                cellProperties.renderer = spreadsheetRenderer;
-
-                if (row === 0 && col === 0) {
-                  cellProperties.bold = true;
-                  cellProperties.fontSize = 16;
-                }
-
-                return cellProperties;
-              }}
-              beforeRender={() => {
-                const hot = hotRef.current?.hotInstance;
-                if (!hot) return;
-                syncSelection(hot);
-              }}
+              formulas={formulas}
+              afterInit={handleAfterInit}
+              afterSelectionEnd={handleAfterSelectionEnd}
+              afterChange={handleAfterChange}
+              cells={renderCellProps}
             />
           </div>
         </div>
@@ -608,7 +948,11 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/55">
           <div className="flex items-center gap-2">
             <Download size={16} />
-            <span>Ready to extend with save/export hooks.</span>
+            <span>
+              {loading
+                ? "Loading workbook..."
+                : "Ready to extend with save/export hooks."}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <Trash2 size={16} className="text-[#ff8d8d]" />

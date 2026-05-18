@@ -1,9 +1,10 @@
 "use client";
 
 import { useFileList } from "@/lib/features/home/hooks/useFileList";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useUploadRefresh } from "@/lib/features/home/context/upload_refresh_context";
 import { useFolderModal } from "@/lib/features/home/context/folder_modal_context";
+import { usePhotoViewer as usePhotoViewerContext } from "@/lib/features/home/context/photo_viewer_context";
 import { useFolderList } from "@/lib/features/home/hooks/useFolderList";
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import FolderChip from "@/lib/cores/components/folder_chip";
@@ -11,10 +12,33 @@ import FileCard from "@/lib/cores/components/file_card";
 import { useRouter } from "next/navigation";
 import ItemManager, { DraggableItemModel } from "../types/itemManager";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
-import { openFile } from "@/lib/cores/utils/fileUtils";
+import { isImageExtension, openFile } from "@/lib/cores/utils/fileUtils";
+import CategorySelectMenu from "../../category/component/category_select_menu";
 
 export default function RepositoryGrid({ id }: { id: string }) {
   const router = useRouter();
+  const { openPhotoViewer } = usePhotoViewerContext();
+  const [selectedFileForCategory, setSelectedFileForCategory] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+
+  const openRepositoryFile = (file: {
+    id: string;
+    name: string;
+    extension: string;
+  }) => {
+    openFile(file.extension, file.id, router, async (photo) => {
+      if (!isImageExtension(file.extension)) {
+        return;
+      }
+
+      openPhotoViewer({
+        src: photo.signedUrl,
+        title: photo.file.name,
+      });
+    });
+  };
 
   const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
   const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
@@ -60,7 +84,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
     return () => {
       itemManagerRef.current?.destroy();
     };
-  }, []);
+  }, [notifyUploadSuccess]);
 
   useEffect(() => {
     const manager = itemManagerRef.current;
@@ -152,18 +176,18 @@ export default function RepositoryGrid({ id }: { id: string }) {
           {files.map((file) => (
             <div key={file.id} data-item-id={file.id}>
               <FileCard
-                onTap={() => openFile(file.extension, file.id, router)}
+                onTap={() => openRepositoryFile(file)}
                 isFavourite={file.isFavourite}
                 name={file.name}
                 id={file.id}
                 extension={file.extension}
+                statusLabel={file.category?.name}
+                statusColor={file.category?.color}
                 menuItems={[
                   {
                     label: "Open",
                     danger: false,
-                    onTap: () => {
-                      openFile(file.extension, file.id, router);
-                    },
+                    onTap: () => openRepositoryFile(file),
                   },
                   {
                     label: "Rename",
@@ -191,6 +215,16 @@ export default function RepositoryGrid({ id }: { id: string }) {
                     },
                   },
                   {
+                    label: "Set Category",
+                    danger: false,
+                    onTap: () => {
+                      setSelectedFileForCategory({
+                        id: file.id,
+                        name: file.name,
+                      });
+                    },
+                  },
+                  {
                     label: "History",
                     danger: false,
                     onTap: () => {
@@ -207,6 +241,14 @@ export default function RepositoryGrid({ id }: { id: string }) {
             </div>
           ))}
         </div>
+
+        <CategorySelectMenu
+          open={selectedFileForCategory !== null}
+          fileId={selectedFileForCategory?.id ?? ""}
+          fileName={selectedFileForCategory?.name ?? ""}
+          onClose={() => setSelectedFileForCategory(null)}
+          onSuccess={notifyUploadSuccess}
+        />
       </main>
     </PageWrapper>
   );

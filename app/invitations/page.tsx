@@ -50,58 +50,41 @@ export default function InvitationsPage() {
             ) : (
               pendingInvitations.map((item) => (
                 <article
-                  key={item.id}
+                  key={item.invitation.id}
                   className="rounded-2xl border border-[#2a2c2e] bg-[#111213] p-5"
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="rounded-full bg-[#252729] px-3 py-1 text-xs uppercase tracking-wide text-[#7a7d82]">
-                          {item.status}
+                          {item.invitation.status}
                         </span>
                         <span className="rounded-full border border-[#2a2c2e] px-3 py-1 text-xs text-[#7a7d82]">
-                          {item.role}
+                          Reviewer
                         </span>
                       </div>
 
                       <div>
-                        <h3 className="text-lg font-semibold text-[#f6f7f8]">
-                          {item.teamName}
-                        </h3>
                         <p className="text-sm text-[#7a7d82]">
-                          {item.repositoryName}
+                          {item.file.name}
                         </p>
                       </div>
-
-                      <p className="max-w-3xl text-sm leading-6 text-[#c5c7ca]">
-                        {item.message}
-                      </p>
 
                       <div className="text-sm text-[#7a7d82]">
                         Invited by{" "}
                         <span className="text-[#e8e9ea]">
-                          {item.inviterName}
+                          {item.invitation.supervisorId}
                         </span>{" "}
-                        on {formatDate(item.sentAt)}
+                        on {formatDate(item.invitation.invitedAt)}
                       </div>
                     </div>
 
                     <div className="flex shrink-0 flex-wrap gap-2">
                       <button
                         type="button"
-                        onClick={() =>
-                          router.push(
-                            PageRoutes.repositoryInvitationDetail(item.id),
-                          )
-                        }
-                        className="inline-flex items-center gap-2 rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm text-[#e8e9ea] transition-colors hover:bg-[#252729]"
-                      >
-                        View detail
-                        <ChevronRight size={15} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => acceptInvitation(item.id)}
+                        onClick={() => {
+                          void acceptInvitation(item.invitation.id);
+                        }}
                         className="inline-flex items-center gap-2 rounded-xl bg-[#6c5ce7] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#7d6ef0]"
                       >
                         <CheckCircle2 size={15} />
@@ -109,7 +92,9 @@ export default function InvitationsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => declineInvitation(item.id)}
+                        onClick={() => {
+                          void declineInvitation(item.invitation.id);
+                        }}
                         className="inline-flex items-center gap-2 rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm text-[#fd7c5a] transition-colors hover:bg-[#252729]"
                       >
                         <XCircle size={15} />

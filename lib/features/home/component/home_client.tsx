@@ -19,7 +19,14 @@ import { useFolderList } from "../hooks/useFolderList";
 import InputModal from "./input_modal";
 import { useFileList } from "../hooks/useFileList";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
-import { Cable, Clock, FolderOpen, Mail, Star, Trash2 } from "lucide-react";
+import {
+  Cable,
+  Clock,
+  FileSearch,
+  FolderOpen,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 function getActiveNav(pathname: string) {
@@ -32,6 +39,8 @@ function getActiveNav(pathname: string) {
       return "trash";
     case PageRoutes.repositoryCategory:
       return "category";
+    case PageRoutes.repositoryReview:
+      return "review";
   }
 
   if (pathname === PageRoutes.repository || /^\/repo\/[^/]+$/.test(pathname)) {
@@ -125,6 +134,14 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
       id: "category",
       onTap: async () => {
         await router.push(PageRoutes.repositoryCategory);
+      },
+    },
+    {
+      icon: FileSearch,
+      label: "Review Files",
+      id: "review",
+      onTap: async () => {
+        await router.push(PageRoutes.repositoryReview);
       },
     },
     {

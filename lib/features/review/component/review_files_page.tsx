@@ -27,21 +27,6 @@ function formatSize(size: number) {
   return `${currentSize.toFixed(currentSize >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
-function formatDate(value?: string) {
-  if (!value) return "-";
-
-  const parsedDate = new Date(value);
-  if (Number.isNaN(parsedDate.getTime())) return value;
-
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(parsedDate);
-}
-
 function getStatusLabel(status?: string) {
   switch (status) {
     case "pending":
@@ -158,7 +143,7 @@ export default function ReviewFilesPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          router.push(PageRoutes.recordFile(item.file.id));
+                          router.push(PageRoutes.repositoryReviewDetail(item.file.id));
                         }}
                         className="inline-flex items-center gap-2 rounded-xl bg-[#6c5ce7] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#7d6ef0]"
                       >

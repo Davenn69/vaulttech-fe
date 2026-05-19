@@ -43,6 +43,10 @@ function getActiveNav(pathname: string) {
       return "review";
   }
 
+  if (/^\/repo\/review\/[^/]+$/.test(pathname)) {
+    return "review";
+  }
+
   if (pathname === PageRoutes.repository || /^\/repo\/[^/]+$/.test(pathname)) {
     return "repository";
   }

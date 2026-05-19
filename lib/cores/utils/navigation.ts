@@ -19,6 +19,10 @@ export class PageRoutes {
     return `/repo/${id}`;
   }
 
+  static repositoryReviewDetail(id: string) {
+    return `/repo/review/${id}`;
+  }
+
   static wordFile(id: string) {
     return `/word/${id}`;
   }

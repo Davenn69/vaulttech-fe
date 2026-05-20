@@ -7,21 +7,19 @@ import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import { api } from "@/lib/cores/utils/api";
 import useRecord from "@/lib/features/record/hooks/useRecord";
 import { ReviewDetailModel } from "../types/review_file";
+import { Loading } from "handsontable/plugins";
 
 const ACCEPT_REVIEW_ENDPOINT = "/review/accept";
 
 export function useReviewDocument(id?: string) {
-  const recordState = useRecord(id);
   const [accepting, setAccepting] = useState(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [reviewDetail, setReviewDetail] = useState<ReviewDetailModel>();
-  const [error, setError] = useState<string>();
 
   const fetchUrl = useCallback(async (fileId?: string) => {
     if (!fileId) return;
 
     setLoading(true);
-    setError(undefined);
 
     try {
       const res = await api.get<ApiResponse<ReviewDetailModel>>(
@@ -35,7 +33,6 @@ export function useReviewDocument(id?: string) {
         : "Failed to load review document";
 
       const nextMessage = message ?? "Failed to load review document";
-      setError(nextMessage);
       toast.error(nextMessage);
       return undefined;
     } finally {
@@ -76,9 +73,7 @@ export function useReviewDocument(id?: string) {
   }, []);
 
   return {
-    ...recordState,
-    loading: recordState.loading || loading,
-    error: recordState.error ?? error,
+    loading,
     reviewDetail,
     signedUrl: reviewDetail?.signedUrl,
     fetchUrl,

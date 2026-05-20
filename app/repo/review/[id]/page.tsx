@@ -2,9 +2,12 @@ import ReviewDocumentPage from "@/lib/features/review/component/review_document_
 
 export default async function ReviewDocumentRoute({
   params,
+  searchParams,
 }: {
   params: { id: string };
+  searchParams?: { fileId?: string };
 }) {
   const { id } = await params;
-  return <ReviewDocumentPage id={id} />;
+  const { fileId } = await searchParams!;
+  return <ReviewDocumentPage documentSupervisorId={id} fileId={fileId} />;
 }

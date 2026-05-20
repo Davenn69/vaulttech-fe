@@ -3,10 +3,12 @@
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, RefreshCw } from "lucide-react";
+import { CheckCircle2, RefreshCw, XCircle } from "lucide-react";
+import { useState } from "react";
 import { useReviewDocument } from "../hooks/useReviewDocument";
 import RevisionTimeline from "@/lib/features/record/components/revision_timeline";
 import ReviewDocumentPreview from "./review_document_preview";
+import ReviewDeclineModal from "./review_decline_modal";
 import {
   formatDate,
   formatSize,
@@ -15,7 +17,8 @@ import {
 import useRecord from "../../record/hooks/useRecord";
 
 type ReviewDocumentPageProps = {
-  id: string;
+  documentSupervisorId: string;
+  fileId?: string;
 };
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
@@ -29,16 +32,22 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function ReviewDocumentPage({ id }: ReviewDocumentPageProps) {
+export default function ReviewDocumentPage({
+  documentSupervisorId,
+  fileId,
+}: ReviewDocumentPageProps) {
   const router = useRouter();
+  const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false);
   const {
     previewLoading,
     accepting,
     acceptDocument,
+    declining,
+    declineDocument,
     reviewDetail,
     signedUrl,
-  } = useReviewDocument(id);
-  const { record, fetchRecord, loading: recordLoading } = useRecord(id);
+  } = useReviewDocument(fileId);
+  const { record, fetchRecord, loading: recordLoading } = useRecord(fileId);
 
   const normalizedExtension = normalizeExtension(reviewDetail?.file.extension);
   const latestRevision = record?.revisions?.[0];
@@ -62,7 +71,10 @@ export default function ReviewDocumentPage({ id }: ReviewDocumentPageProps) {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => void fetchRecord(id)}
+                onClick={() => {
+                  if (!fileId) return;
+                  void fetchRecord(fileId);
+                }}
                 className="inline-flex items-center gap-2 rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm text-[#e8e9ea] transition-colors hover:bg-[#252729]"
               >
                 <RefreshCw size={15} />
@@ -70,8 +82,17 @@ export default function ReviewDocumentPage({ id }: ReviewDocumentPageProps) {
               </button>
               <button
                 type="button"
+                onClick={() => setIsDeclineModalOpen(true)}
+                disabled={accepting || declining}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#3f2020] bg-[rgba(255,107,107,0.08)] px-4 py-2 text-sm font-medium text-[#ffb4b4] transition-colors hover:bg-[rgba(255,107,107,0.14)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <XCircle size={15} />
+                Decline document
+              </button>
+              <button
+                type="button"
                 onClick={async () => {
-                  await acceptDocument(id);
+                  await acceptDocument(documentSupervisorId);
                   router.push(PageRoutes.repositoryReview);
                 }}
                 disabled={accepting}
@@ -115,7 +136,10 @@ export default function ReviewDocumentPage({ id }: ReviewDocumentPageProps) {
                     extension={normalizedExtension}
                     fileName={reviewDetail?.file.name}
                     loading={previewLoading}
-                    onReload={() => void fetchRecord(id)}
+                    onReload={() => {
+                      if (!fileId) return;
+                      void fetchRecord(fileId);
+                    }}
                   />
                 </div>
 
@@ -189,6 +213,16 @@ export default function ReviewDocumentPage({ id }: ReviewDocumentPageProps) {
           </div>
         </section>
       </main>
+      <ReviewDeclineModal
+        open={isDeclineModalOpen}
+        isLoading={declining}
+        onClose={() => setIsDeclineModalOpen(false)}
+        onSubmit={async (comment) => {
+          await declineDocument(documentSupervisorId, comment);
+          setIsDeclineModalOpen(false);
+          router.push(PageRoutes.repositoryReview);
+        }}
+      />
     </PageWrapper>
   );
 }

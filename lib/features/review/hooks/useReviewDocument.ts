@@ -7,21 +7,20 @@ import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import { api } from "@/lib/cores/utils/api";
 import { ReviewDetailModel } from "../types/review_file";
 
-const ACCEPT_REVIEW_ENDPOINT = "/review/accept";
-
-export function useReviewDocument(id?: string) {
+export function useReviewDocument(fileId?: string) {
   const [accepting, setAccepting] = useState(false);
+  const [declining, setDeclining] = useState(false);
   const [previewLoading, setPreviewLoading] = useState<boolean>(false);
   const [reviewDetail, setReviewDetail] = useState<ReviewDetailModel>();
 
-  const fetchUrl = useCallback(async (fileId?: string) => {
-    if (!fileId) return;
+  const fetchUrl = useCallback(async (currentFileId?: string) => {
+    if (!currentFileId) return;
 
     setPreviewLoading(true);
 
     try {
       const res = await api.get<ApiResponse<ReviewDetailModel>>(
-        `/file/${fileId}/signedUrl`,
+        `/file/${currentFileId}/signedUrl`,
       );
 
       setReviewDetail(res.data);
@@ -39,21 +38,18 @@ export function useReviewDocument(id?: string) {
   }, []);
 
   useEffect(() => {
-    if (!id) return;
+    if (!fileId) return;
 
-    void fetchUrl(id);
-  }, [fetchUrl, id]);
+    void fetchUrl(fileId);
+  }, [fetchUrl, fileId]);
 
-  const acceptDocument = useCallback(async (fileId: string) => {
+  const acceptDocument = useCallback(async (documentSupervisorId: string) => {
     setAccepting(true);
 
     try {
-      const res = await api.patch<ApiResponse<unknown>>(
-        ACCEPT_REVIEW_ENDPOINT,
-        {
-          id: fileId,
-        },
-      );
+      const res = await api.patch<ApiResponse<unknown>>("/review/approve", {
+        id: documentSupervisorId,
+      });
 
       toast.success(res.message);
       return res.data;
@@ -70,6 +66,33 @@ export function useReviewDocument(id?: string) {
     }
   }, []);
 
+  const declineDocument = useCallback(
+    async (documentSupervisorId: string, comment: string) => {
+      setDeclining(true);
+
+      try {
+        const res = await api.patch<ApiResponse<unknown>>("/review/decline", {
+          id: documentSupervisorId,
+          comment,
+        });
+
+        toast.success(res.message);
+        return res.data;
+      } catch (caughtError) {
+        const message = axios.isAxiosError<ApiResponseError>(caughtError)
+          ? caughtError.response?.data.message
+          : "Failed to decline document";
+
+        const nextMessage = message ?? "Failed to decline document";
+        toast.error(nextMessage);
+        throw caughtError;
+      } finally {
+        setDeclining(false);
+      }
+    },
+    [],
+  );
+
   return {
     previewLoading,
     reviewDetail,
@@ -77,5 +100,7 @@ export function useReviewDocument(id?: string) {
     fetchUrl,
     accepting,
     acceptDocument,
+    declining,
+    declineDocument,
   };
 }

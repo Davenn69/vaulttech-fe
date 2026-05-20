@@ -143,7 +143,9 @@ export default function ReviewFilesPage() {
                       <button
                         type="button"
                         onClick={() => {
-                          router.push(PageRoutes.repositoryReviewDetail(item.file.id));
+                          router.push(
+                            `${PageRoutes.repositoryReviewDetail(item.invitation.id)}?fileId=${encodeURIComponent(item.file.id)}`,
+                          );
                         }}
                         className="inline-flex items-center gap-2 rounded-xl bg-[#6c5ce7] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#7d6ef0]"
                       >

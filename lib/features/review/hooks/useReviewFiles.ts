@@ -30,6 +30,7 @@ export function useReviewFiles() {
       const nextMessage = message ?? "Failed to fetch review files";
       setError(nextMessage);
       setReviewFiles([]);
+      console.log(message);
       toast.error(nextMessage);
     } finally {
       setLoading(false);

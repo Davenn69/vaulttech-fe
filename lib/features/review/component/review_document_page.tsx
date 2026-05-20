@@ -32,7 +32,7 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
 export default function ReviewDocumentPage({ id }: ReviewDocumentPageProps) {
   const router = useRouter();
   const {
-    loading: documentLoading,
+    previewLoading,
     accepting,
     acceptDocument,
     reviewDetail,
@@ -44,7 +44,7 @@ export default function ReviewDocumentPage({ id }: ReviewDocumentPageProps) {
   const latestRevision = record?.revisions?.[0];
 
   return (
-    <PageWrapper isLoading={documentLoading} className="min-h-dvh">
+    <PageWrapper isLoading={recordLoading} className="min-h-dvh">
       <main className="flex min-h-dvh flex-1 overflow-hidden bg-[#111213] text-[#e8e9ea]">
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#222426] px-5 py-4">
@@ -114,7 +114,7 @@ export default function ReviewDocumentPage({ id }: ReviewDocumentPageProps) {
                     signedUrl={signedUrl}
                     extension={normalizedExtension}
                     fileName={reviewDetail?.file.name}
-                    loading={recordLoading}
+                    loading={previewLoading}
                     onReload={() => void fetchRecord(id)}
                   />
                 </div>

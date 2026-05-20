@@ -8,5 +8,5 @@ export type ReviewFileModel = {
 
 export type ReviewDetailModel = {
   file: FileModel;
-  signedUrl: string;
+  url: string;
 };

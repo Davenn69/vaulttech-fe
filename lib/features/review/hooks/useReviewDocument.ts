@@ -5,21 +5,19 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import { api } from "@/lib/cores/utils/api";
-import useRecord from "@/lib/features/record/hooks/useRecord";
 import { ReviewDetailModel } from "../types/review_file";
-import { Loading } from "handsontable/plugins";
 
 const ACCEPT_REVIEW_ENDPOINT = "/review/accept";
 
 export function useReviewDocument(id?: string) {
   const [accepting, setAccepting] = useState(false);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [previewLoading, setPreviewLoading] = useState<boolean>(false);
   const [reviewDetail, setReviewDetail] = useState<ReviewDetailModel>();
 
   const fetchUrl = useCallback(async (fileId?: string) => {
     if (!fileId) return;
 
-    setLoading(true);
+    setPreviewLoading(true);
 
     try {
       const res = await api.get<ApiResponse<ReviewDetailModel>>(
@@ -36,7 +34,7 @@ export function useReviewDocument(id?: string) {
       toast.error(nextMessage);
       return undefined;
     } finally {
-      setLoading(false);
+      setPreviewLoading(false);
     }
   }, []);
 
@@ -73,9 +71,9 @@ export function useReviewDocument(id?: string) {
   }, []);
 
   return {
-    loading,
+    previewLoading,
     reviewDetail,
-    signedUrl: reviewDetail?.signedUrl,
+    signedUrl: reviewDetail?.url,
     fetchUrl,
     accepting,
     acceptDocument,

@@ -14,9 +14,7 @@ export default function usePhotoViewer(id: string) {
     setLoading(true);
 
     try {
-      const res = await api.get<ApiResponse<PhotoModel>>(
-        `/file/${id}/signedUrl`,
-      );
+      const res = await api.get<ApiResponse<PhotoModel>>(`/file/${id}/photo`);
 
       setPhoto(res.data);
     } catch (error) {

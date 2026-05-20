@@ -5,3 +5,8 @@ export type ReviewFileModel = {
   file: FileModel;
   invitation: InvitationModel;
 };
+
+export type ReviewDetailModel = {
+  file: FileModel;
+  signedUrl: string;
+};

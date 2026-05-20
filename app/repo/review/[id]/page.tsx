@@ -5,6 +5,6 @@ export default async function ReviewDocumentRoute({
 }: {
   params: { id: string };
 }) {
-  const { id } = params;
+  const { id } = await params;
   return <ReviewDocumentPage id={id} />;
 }

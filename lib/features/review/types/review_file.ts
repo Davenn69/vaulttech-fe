@@ -6,6 +6,11 @@ export type ReviewFileModel = {
   invitation: InvitationModel;
 };
 
+export type ReviewModel = {
+  reviewableFiles: ReviewFileModel[];
+  reviewedFiles: ReviewFileModel[];
+};
+
 export type ReviewDetailModel = {
   file: FileModel;
   url: string;

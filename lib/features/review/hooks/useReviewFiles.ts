@@ -5,10 +5,11 @@ import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import { api } from "@/lib/cores/utils/api";
-import { ReviewFileModel } from "../types/review_file";
+import { ReviewFileModel, ReviewModel } from "../types/review_file";
 
 export function useReviewFiles() {
-  const [reviewFiles, setReviewFiles] = useState<ReviewFileModel[]>([]);
+  const [reviewableFiles, setReviewableFiles] = useState<ReviewFileModel[]>([]);
+  const [reviewedFiles, setReviewedFiles] = useState<ReviewFileModel[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>();
@@ -18,10 +19,10 @@ export function useReviewFiles() {
     setError(undefined);
 
     try {
-      const res =
-        await api.get<ApiResponse<ReviewFileModel[]>>("/review/files");
+      const res = await api.get<ApiResponse<ReviewModel>>("/review/files");
 
-      setReviewFiles(res.data ?? []);
+      setReviewableFiles(res.data.reviewableFiles);
+      setReviewedFiles(res.data.reviewedFiles);
     } catch (caughtError) {
       const message = axios.isAxiosError<ApiResponseError>(caughtError)
         ? caughtError.response?.data.message
@@ -29,7 +30,8 @@ export function useReviewFiles() {
 
       const nextMessage = message ?? "Failed to fetch review files";
       setError(nextMessage);
-      setReviewFiles([]);
+      setReviewableFiles([]);
+      setReviewedFiles([]);
       console.log(message);
       toast.error(nextMessage);
     } finally {
@@ -46,7 +48,8 @@ export function useReviewFiles() {
     hydrated,
     loading,
     error,
-    reviewFiles,
+    reviewableFiles,
+    reviewedFiles,
     fetchReviewFiles,
   };
 }

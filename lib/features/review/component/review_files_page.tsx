@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   ArrowRight,
+  BookOpen,
   FileSearch,
   RefreshCw,
   ShieldCheck,
@@ -162,7 +163,13 @@ function ReviewFileCard({
   );
 }
 
-function ReviewedFileCard({ item }: { item: ReviewFileModel }) {
+function ReviewedFileCard({
+  item,
+  onOpen,
+}: {
+  item: ReviewFileModel;
+  onOpen: () => void;
+}) {
   const progress = getProgressValue(item.invitation.status);
 
   return (
@@ -187,6 +194,50 @@ function ReviewedFileCard({ item }: { item: ReviewFileModel }) {
             </h3>
             <p className="mt-1 break-all text-sm text-[#7a7d82]">
               {item.file.path}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap gap-2 text-xs text-[#7a7d82]">
+            <span className="rounded-full border border-[#2a2c2e] bg-[#1a1b1d] px-3 py-1">
+              Size: {formatSize(item.file.size)}
+            </span>
+            <span className="rounded-full border border-[#2a2c2e] bg-[#1a1b1d] px-3 py-1">
+              Created by: {item.file.createdBy}
+            </span>
+            <span className="rounded-full border border-[#2a2c2e] bg-[#1a1b1d] px-3 py-1">
+              Invited by: {item.invitation.invitedBy}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={onOpen}
+            className="inline-flex items-center gap-2 rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm font-medium text-[#e8e9ea] transition-colors hover:bg-[#252729]"
+          >
+            <BookOpen size={15} />
+            Open reviewed detail
+          </button>
+
+          <div className="rounded-2xl border border-[#222426] bg-[#1a1b1d] px-4 py-3">
+            <div className="flex items-center justify-between gap-3 text-xs text-[#7a7d82]">
+              <span>Progress</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="mt-2 h-2 rounded-full bg-[#0f1011]">
+              <div
+                className={`h-2 rounded-full ${
+                  item.invitation.status === "rejected"
+                    ? "bg-[#ff6b6b]"
+                    : item.invitation.status === "accept"
+                      ? "bg-[#34d399]"
+                      : "bg-[#facc15]"
+                }`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-[#7a7d82]">
+              {getProgressLabel(item.invitation.status)}. File ini sudah
+              diproses dan statusnya bisa dipantau dari progress di atas.
             </p>
           </div>
         </div>
@@ -333,7 +384,15 @@ export default function ReviewFilesPage() {
                   />
                 ) : (
                   reviewedFiles.map((item) => (
-                    <ReviewedFileCard key={item.file.id} item={item} />
+                    <ReviewedFileCard
+                      key={item.file.id}
+                      item={item}
+                      onOpen={() => {
+                        router.push(
+                          `${PageRoutes.repositoryReviewDetail(item.invitation.id)}?fileId=${encodeURIComponent(item.file.id)}&mode=reviewed`,
+                        );
+                      }}
+                    />
                   ))
                 )}
               </div>

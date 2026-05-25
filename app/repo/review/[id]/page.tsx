@@ -5,9 +5,15 @@ export default async function ReviewDocumentRoute({
   searchParams,
 }: {
   params: { id: string };
-  searchParams?: { fileId?: string };
+  searchParams?: { fileId?: string; mode?: "reviewable" | "reviewed" };
 }) {
   const { id } = await params;
-  const { fileId } = await searchParams!;
-  return <ReviewDocumentPage documentSupervisorId={id} fileId={fileId} />;
+  const { fileId, mode } = (await searchParams) ?? {};
+  return (
+    <ReviewDocumentPage
+      documentSupervisorId={id}
+      fileId={fileId}
+      mode={mode}
+    />
+  );
 }

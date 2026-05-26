@@ -24,6 +24,7 @@ import {
   Clock,
   FileSearch,
   FolderOpen,
+  Share2,
   Star,
   Trash2,
 } from "lucide-react";
@@ -39,6 +40,8 @@ function getActiveNav(pathname: string) {
       return "trash";
     case PageRoutes.repositoryCategory:
       return "category";
+    case PageRoutes.repositoryShared:
+      return "shared";
     case PageRoutes.repositoryReview:
       return "review";
   }
@@ -138,6 +141,14 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
       id: "category",
       onTap: async () => {
         await router.push(PageRoutes.repositoryCategory);
+      },
+    },
+    {
+      icon: Share2,
+      label: "Shared Files",
+      id: "shared",
+      onTap: async () => {
+        await router.push(PageRoutes.repositoryShared);
       },
     },
     {

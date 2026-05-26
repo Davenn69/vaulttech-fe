@@ -6,6 +6,7 @@ export class PageRoutes {
   static readonly repositoryFavourites = "/repo/favourites";
   static readonly repositoryTrash = "/repo/trash";
   static readonly repositoryCategory = "/repo/category";
+  static readonly repositoryShared = "/repo/shared";
   static readonly repositoryReview = "/repo/review";
   static readonly invitations = "/invitations";
   static readonly invitationsHistory = "/invitations/history";

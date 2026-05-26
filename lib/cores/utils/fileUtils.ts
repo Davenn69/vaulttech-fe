@@ -28,6 +28,7 @@ export function openFile(
   const normalizedExtension = extension.toLowerCase().replaceAll(".", "");
 
   switch (normalizedExtension) {
+    case "doc":
     case "docx":
       router.push(PageRoutes.wordFile(id));
       break;

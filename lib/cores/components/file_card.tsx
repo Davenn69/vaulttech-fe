@@ -4,6 +4,7 @@ import Image from "next/image";
 import { MoreHorizontal, Search, Send, Star, X } from "lucide-react";
 import { createPortal } from "react-dom";
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useRef,
@@ -13,6 +14,7 @@ import {
 import { MenuItemType } from "../types/menu_item_type";
 import toast from "react-hot-toast";
 import { useReviewers } from "@/lib/features/invitations/hooks/useReviewers";
+import ShareFileModal from "@/lib/features/invitations/component/share_file_modal";
 
 const useIsomorphicLayoutEffect =
   typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -28,6 +30,7 @@ type FileCardType = {
   statusColor?: string;
   onTap?: () => void;
   allowInviteReviewers?: boolean;
+  allowShareFile?: boolean;
 };
 
 const FILE_ICON_BY_EXTENSION: Record<string, string> = {
@@ -61,10 +64,12 @@ export default function FileCard({
   statusColor,
   onTap,
   allowInviteReviewers = false,
+  allowShareFile = false,
 }: FileCardType) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [selectedReviewerId, setSelectedReviewerId] = useState<string | null>(
     null,
   );
@@ -81,13 +86,20 @@ export default function FileCard({
     sendInvite,
   } = useReviewers(inviteOpen);
 
-  const updateMenuPosition = () => {
+  const updateMenuPosition = useCallback(() => {
     const buttonEl = buttonRef.current;
     if (!buttonEl) return;
 
     const rect = buttonEl.getBoundingClientRect();
     const menuWidth = 160;
-    const menuHeight = 172;
+    const menuItemCount =
+      menuItems.length +
+      (allowInviteReviewers ? 1 : 0) +
+      (allowShareFile && id ? 1 : 0);
+    const menuHeight = Math.min(
+      menuItemCount * 40 + 8,
+      window.innerHeight - 16,
+    );
     const gap = 8;
     const padding = 8;
 
@@ -109,12 +121,12 @@ export default function FileCard({
     }
 
     setMenuPosition({ top, left });
-  };
+  }, [allowInviteReviewers, allowShareFile, id, menuItems.length]);
 
   useIsomorphicLayoutEffect(() => {
     if (!menuOpen || !mounted) return;
     updateMenuPosition();
-  }, [menuOpen, mounted]);
+  }, [menuOpen, mounted, updateMenuPosition]);
 
   useEffect(() => {
     if (!menuOpen) return undefined;
@@ -173,7 +185,12 @@ export default function FileCard({
       (reviewer) => reviewer.id === selectedReviewerId,
     );
 
-    sendInvite(selectedReviewer?.id!, id!);
+    if (!id || !selectedReviewer) {
+      toast.error("Tidak bisa mengirim invite.");
+      return;
+    }
+
+    sendInvite(selectedReviewer.id, id);
 
     setInviteOpen(false);
     setSelectedReviewerId(null);
@@ -194,7 +211,7 @@ export default function FileCard({
       window.removeEventListener("resize", handleViewportChange);
       window.removeEventListener("scroll", handleViewportChange, true);
     };
-  }, [menuOpen]);
+  }, [menuOpen, updateMenuPosition]);
 
   return (
     <div
@@ -300,7 +317,7 @@ export default function FileCard({
             className="
               fixed z-[1000]
               bg-[#1a1b1d] border border-[#2a2c2e] rounded-xl
-              p-1 w-[160px]
+              p-1 w-[160px] max-h-[calc(100vh-16px)] overflow-y-auto
               shadow-[0_8px_24px_rgba(0,0,0,0.4)]
             "
             style={{
@@ -344,6 +361,23 @@ export default function FileCard({
                 Invite Reviewer
               </button>
             )}
+            {allowShareFile && id ? (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setMenuOpen(false);
+                  window.setTimeout(() => setShareOpen(true), 0);
+                }}
+                className="
+                  block w-full px-2.5 py-[7px] text-left text-[13px] rounded-lg
+                  text-[#7a7d82] transition-all duration-100
+                  hover:bg-[#252729] hover:text-[#e8e9ea]
+                "
+              >
+                Share File
+              </button>
+            ) : null}
           </div>,
           document.body,
         )}
@@ -480,6 +514,13 @@ export default function FileCard({
           </div>,
           document.body,
         )}
+
+      <ShareFileModal
+        open={shareOpen}
+        fileId={id}
+        fileName={name}
+        onClose={() => setShareOpen(false)}
+      />
     </div>
   );
 }

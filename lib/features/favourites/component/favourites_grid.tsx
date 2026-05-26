@@ -87,7 +87,9 @@ export default function FavouriteGrid() {
               key={file.id}
               isFavourite={file.isFavourite}
               name={file.name}
+              id={file.id}
               extension={file.extension}
+              allowShareFile
               statusLabel={file.category?.name}
               statusColor={file.category?.color}
               onTap={() => openFile(file.extension, file.id, router)}

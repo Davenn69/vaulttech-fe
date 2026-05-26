@@ -182,6 +182,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
                 id={file.id}
                 extension={file.extension}
                 allowInviteReviewers
+                allowShareFile
                 statusLabel={file.category?.name}
                 statusColor={file.category?.color}
                 menuItems={[

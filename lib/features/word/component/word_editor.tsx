@@ -1,6 +1,7 @@
 "use client";
 
-import { EditorContent, JSONContent, useEditor } from "@tiptap/react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import type { Editor } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import Underline from "@tiptap/extension-underline";
@@ -22,237 +23,35 @@ import {
   Underline as UnderlineIcon,
   Undo2,
 } from "lucide-react";
-import { type ComponentType, useEffect, useRef, useState } from "react";
+import {
+  type ComponentType,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import toast from "react-hot-toast";
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import useWord from "../hooks/useWord";
-
-const EMPTY_DOCUMENT: JSONContent = {
-  type: "doc",
-  content: [
-    {
-      type: "paragraph",
-    },
-  ],
-};
-
-function escapeRtfText(value: string) {
-  return value
-    .replace(/\\/g, "\\\\")
-    .replace(/{/g, "\\{")
-    .replace(/}/g, "\\}")
-    .replace(/\r?\n/g, "\\par ");
-}
-
-function encodeRtfUnicode(value: string) {
-  let result = "";
-
-  for (const char of value) {
-    const codePoint = char.codePointAt(0) ?? 0;
-
-    if (codePoint <= 127) {
-      result += char;
-      continue;
-    }
-
-    const signed = codePoint > 32767 ? codePoint - 65536 : codePoint;
-    result += `\\u${signed}?`;
-  }
-
-  return result;
-}
-
-function applyRtfMarks(text: string, marks?: JSONContent["marks"]) {
-  if (!marks?.length) return text;
-
-  let output = text;
-  const markSet = new Set(marks.map((mark) => mark.type));
-
-  if (markSet.has("code")) {
-    output = `{\\f1 ${output}}`;
-  }
-
-  if (markSet.has("underline")) {
-    output = `\\ul ${output} \\ulnone`;
-  }
-
-  if (markSet.has("strike")) {
-    output = `\\strike ${output} \\strike0`;
-  }
-
-  if (markSet.has("italic")) {
-    output = `\\i ${output} \\i0`;
-  }
-
-  if (markSet.has("bold")) {
-    output = `\\b ${output} \\b0`;
-  }
-
-  return output;
-}
-
-function renderInlineContent(nodes?: JSONContent[]): string {
-  if (!nodes?.length) return "";
-
-  return nodes
-    .map((node) => {
-      if (node.type === "text") {
-        const plainText = encodeRtfUnicode(escapeRtfText(node.text ?? ""));
-        return applyRtfMarks(plainText, node.marks);
-      }
-
-      if (node.type === "hardBreak") {
-        return "\\line ";
-      }
-
-      if (node.type === "textStyle" || node.type === "paragraph") {
-        return renderInlineContent(node.content);
-      }
-
-      return renderBlockNode(node);
-    })
-    .join("");
-}
-
-function renderListItem(node: JSONContent, ordered = false, index = 1): string {
-  const content = node.content ?? [];
-  const paragraphs = content.filter((child) => child.type === "paragraph");
-  const nestedBlocks = content.filter((child) => child.type !== "paragraph");
-  const firstParagraph = paragraphs[0];
-  const listPrefix = ordered ? `${index}.\\tab ` : "\\bullet\\tab ";
-
-  let result = `${listPrefix}${renderInlineContent(firstParagraph?.content)}\\par `;
-
-  paragraphs.slice(1).forEach((paragraph) => {
-    result += `\\li360 ${renderInlineContent(paragraph.content)}\\par `;
-  });
-
-  nestedBlocks.forEach((child) => {
-    result += renderBlockNode(child);
-  });
-
-  return result;
-}
-
-function renderBlockNode(node: JSONContent): string {
-  switch (node.type) {
-    case "paragraph":
-      return `${renderInlineContent(node.content)}\\par `;
-
-    case "heading": {
-      const level = Number(node.attrs?.level ?? 1);
-      const sizeByLevel: Record<number, number> = {
-        1: 36,
-        2: 30,
-        3: 26,
-        4: 24,
-        5: 22,
-        6: 20,
-      };
-      const size = sizeByLevel[level] ?? 28;
-      return `\\b\\fs${size} ${renderInlineContent(node.content)}\\b0\\fs24\\par `;
-    }
-
-    case "blockquote":
-      return `\\li720\\ri720\\i ${renderInlineContent(node.content)}\\i0\\par `;
-
-    case "bulletList":
-      return (node.content ?? [])
-        .map((child) => renderListItem(child, false))
-        .join("");
-
-    case "orderedList":
-      return (node.content ?? [])
-        .map((child, index) => renderListItem(child, true, index + 1))
-        .join("");
-
-    case "listItem":
-      return renderListItem(node);
-
-    case "codeBlock":
-      return `\\f1 ${escapeRtfText(node.content?.[0]?.text ?? "")}\\f0\\par `;
-
-    case "horizontalRule":
-      return "\\par\\pard\\brdrb\\brdrs\\brdrw10\\brsp20\\par ";
-
-    case "text":
-      return applyRtfMarks(
-        encodeRtfUnicode(escapeRtfText(node.text ?? "")),
-        node.marks,
-      );
-
-    case "hardBreak":
-      return "\\line ";
-
-    default:
-      return renderInlineContent(node.content);
-  }
-}
-
-function toRtfDocument(title: string, content: JSONContent) {
-  const body = renderBlockNode(content);
-
-  return [
-    "{\\rtf1\\ansi\\deff0",
-    "{\\fonttbl{\\f0\\fnil Arial;}{\\f1\\fmodern Consolas;}}",
-    "{\\colortbl;\\red0\\green0\\blue0;\\red25\\green118\\blue210;}",
-    "\\viewkind4\\uc1\\pard\\f0\\fs24",
-    `\\b ${encodeRtfUnicode(escapeRtfText(title))}\\b0\\par\\par `,
-    body,
-    "}",
-  ].join("");
-}
-
-function normalizeEditorContent(raw?: JSONContent | string): JSONContent {
-  if (!raw) return EMPTY_DOCUMENT;
-
-  if (typeof raw !== "string") {
-    if (raw.type === "doc") return raw;
-    return {
-      type: "doc",
-      content: Array.isArray(raw.content)
-        ? raw.content
-        : EMPTY_DOCUMENT.content,
-    };
-  }
-
-  const trimmed = raw.trim();
-  if (!trimmed) return EMPTY_DOCUMENT;
-
-  try {
-    const parsed = JSON.parse(trimmed) as unknown;
-
-    if (
-      parsed &&
-      typeof parsed === "object" &&
-      "type" in parsed &&
-      (parsed as JSONContent).type === "doc"
-    ) {
-      return parsed as JSONContent;
-    }
-  } catch {
-    // Fall back to plain text if the API returns a non-JSON string.
-  }
-
-  return {
-    type: "doc",
-    content: [
-      {
-        type: "paragraph",
-        content: [
-          {
-            type: "text",
-            text: raw,
-          },
-        ],
-      },
-    ],
-  };
-}
+import {
+  EMPTY_DOCUMENT,
+  normalizeEditorContent,
+  toRtfDocument,
+} from "../utils/word_editor_utils";
 
 export default function WordEditor({ id }: { id: string }) {
-  const { loading, saving, content, fileName, saveContent, renameFile } =
-    useWord(id);
+  const {
+    loading,
+    saving,
+    collaborationLoading,
+    content,
+    fileName,
+    collaboration,
+    sessionId,
+    fetchCollaboration,
+    syncCollaboration,
+    saveContent,
+    renameFile,
+  } = useWord(id);
   const [documentName, setDocumentName] = useState("Document");
   const [isEditingName, setIsEditingName] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -260,6 +59,15 @@ export default function WordEditor({ id }: { id: string }) {
   const previousNameRef = useRef("Document");
   const [, setEditorTick] = useState(0);
   const lastAppliedRemoteContentRef = useRef<string | undefined>("");
+  const pendingSaveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const pollingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(
+    null,
+  );
+  const autosyncInFlightRef = useRef(false);
+  const lastSavedSignatureRef = useRef<string>("");
+  const editorRef = useRef<Editor | null>(null);
   const activeDocumentName = fileName ?? documentName;
 
   useEffect(() => {
@@ -305,29 +113,118 @@ export default function WordEditor({ id }: { id: string }) {
             "min-h-[540px] w-full rounded-3xl border border-[#2a2c2e] bg-[#121315] px-6 py-5 text-[15px] leading-7 text-[#e8e9ea] outline-none focus:border-[#6c5ce7] focus:shadow-[0_0_0_3px_rgba(108,92,231,0.15)]",
         },
       },
-      onUpdate: () => {
+      onUpdate: ({ editor }) => {
+        const nextContent = editor.getJSON();
+        const nextSignature = JSON.stringify(nextContent);
+
         setEditorTick((current) => current + 1);
+
+        if (lastSavedSignatureRef.current === nextSignature) {
+          return;
+        }
+
+        if (pendingSaveTimeoutRef.current) {
+          clearTimeout(pendingSaveTimeoutRef.current);
+          pendingSaveTimeoutRef.current = null;
+        }
+
+        pendingSaveTimeoutRef.current = setTimeout(() => {
+          pendingSaveTimeoutRef.current = null;
+          const latestContent = editor.getJSON();
+          const latestSignature = JSON.stringify(latestContent);
+
+          if (lastSavedSignatureRef.current === latestSignature) {
+            return;
+          }
+
+          void (async () => {
+            try {
+              autosyncInFlightRef.current = true;
+              await syncCollaboration(
+                id,
+                latestContent,
+                collaboration?.versionNumber,
+              );
+              lastSavedSignatureRef.current = latestSignature;
+            } catch {
+              // syncCollaboration already shows an error toast.
+            } finally {
+              autosyncInFlightRef.current = false;
+            }
+          })();
+        }, 900);
       },
       onSelectionUpdate: () => {
         setEditorTick((current) => current + 1);
       },
     },
-    [content],
   );
 
   useEffect(() => {
-    if (!editor || !content) return;
+    editorRef.current = editor;
+
+    return () => {
+      if (editorRef.current === editor) {
+        editorRef.current = null;
+      }
+    };
+  }, [editor]);
+
+  useEffect(() => {
+    const currentEditor = editorRef.current;
+    if (!currentEditor || !content) return;
 
     const nextContent = normalizeEditorContent(content);
     const contentSignature = JSON.stringify(nextContent);
-    const editorSignature = JSON.stringify(editor.getJSON());
+    const editorSignature = JSON.stringify(currentEditor.getJSON());
 
-    if (contentSignature === editorSignature) return;
+    if (contentSignature === editorSignature) {
+      lastSavedSignatureRef.current = contentSignature;
+      return;
+    }
     if (lastAppliedRemoteContentRef.current === contentSignature) return;
 
+    if (pendingSaveTimeoutRef.current) {
+      clearTimeout(pendingSaveTimeoutRef.current);
+      pendingSaveTimeoutRef.current = null;
+    }
+
     lastAppliedRemoteContentRef.current = contentSignature;
-    editor.commands.setContent(nextContent);
+    currentEditor.commands.setContent(nextContent, { emitUpdate: false });
+    lastSavedSignatureRef.current = contentSignature;
   }, [content, editor]);
+
+  useEffect(
+    () => () => {
+      if (pendingSaveTimeoutRef.current) {
+        clearTimeout(pendingSaveTimeoutRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!id) return;
+
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    pollingIntervalRef.current = setInterval(() => {
+      if (pendingSaveTimeoutRef.current || autosyncInFlightRef.current) {
+        return;
+      }
+
+      void fetchCollaboration(id, { silent: true });
+    }, 3500);
+
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+    };
+  }, [fetchCollaboration, id]);
 
   const plainText = editor?.getText() ?? "";
   const activeStats = {
@@ -361,12 +258,22 @@ export default function WordEditor({ id }: { id: string }) {
     if (!editor) return;
 
     const nextContent = editor.getJSON();
+    const nextSignature = JSON.stringify(nextContent);
+
+    if (pendingSaveTimeoutRef.current) {
+      clearTimeout(pendingSaveTimeoutRef.current);
+      pendingSaveTimeoutRef.current = null;
+    }
 
     try {
+      autosyncInFlightRef.current = true;
       await saveContent(id, nextContent);
+      lastSavedSignatureRef.current = nextSignature;
       toast.success("Document saved");
     } catch {
       return;
+    } finally {
+      autosyncInFlightRef.current = false;
     }
   };
 
@@ -512,7 +419,32 @@ export default function WordEditor({ id }: { id: string }) {
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-3 rounded-2xl border border-[#222426] bg-[#1a1b1d] px-3 py-2">
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${
+                    collaborationLoading
+                      ? "bg-amber-400"
+                      : collaboration
+                        ? "bg-emerald-400"
+                        : "bg-slate-500"
+                  }`}
+                />
+                <div className="min-w-0">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-[#7a7d82]">
+                    Live sync
+                  </p>
+                  <p className="text-xs font-medium text-[#e8e9ea]">
+                    {collaborationLoading
+                      ? "Connecting"
+                      : collaboration
+                        ? `Synced · version ${collaboration.versionNumber}`
+                        : "Idle"}
+                    {sessionId ? ` · session ${sessionId.slice(0, 8)}` : ""}
+                  </p>
+                </div>
+              </div>
+
               <button
                 type="button"
                 onClick={syncCurrentDraft}
@@ -640,7 +572,11 @@ export default function WordEditor({ id }: { id: string }) {
                         Status
                       </p>
                       <p className="mt-1 text-sm font-medium text-[#e8e9ea]">
-                        Content loaded from backend
+                        {collaborationLoading
+                          ? "Loading collaboration state"
+                          : collaboration
+                            ? `Collaboration version ${collaboration.versionNumber}`
+                            : "Content loaded from backend"}
                       </p>
                     </div>
 

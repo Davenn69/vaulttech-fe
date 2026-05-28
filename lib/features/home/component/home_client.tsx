@@ -19,7 +19,15 @@ import { useFolderList } from "../hooks/useFolderList";
 import InputModal from "./input_modal";
 import { useFileList } from "../hooks/useFileList";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
-import { Clock, FolderOpen, Star, Trash2, Cable } from "lucide-react";
+import {
+  Cable,
+  Clock,
+  FileSearch,
+  FolderOpen,
+  Share2,
+  Star,
+  Trash2,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 
 function getActiveNav(pathname: string) {
@@ -32,6 +40,14 @@ function getActiveNav(pathname: string) {
       return "trash";
     case PageRoutes.repositoryCategory:
       return "category";
+    case PageRoutes.repositoryShared:
+      return "shared";
+    case PageRoutes.repositoryReview:
+      return "review";
+  }
+
+  if (/^\/repo\/review\/[^/]+$/.test(pathname)) {
+    return "review";
   }
 
   if (pathname === PageRoutes.repository || /^\/repo\/[^/]+$/.test(pathname)) {
@@ -125,6 +141,22 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
       id: "category",
       onTap: async () => {
         await router.push(PageRoutes.repositoryCategory);
+      },
+    },
+    {
+      icon: Share2,
+      label: "Shared Files",
+      id: "shared",
+      onTap: async () => {
+        await router.push(PageRoutes.repositoryShared);
+      },
+    },
+    {
+      icon: FileSearch,
+      label: "Review Files",
+      id: "review",
+      onTap: async () => {
+        await router.push(PageRoutes.repositoryReview);
       },
     },
     {

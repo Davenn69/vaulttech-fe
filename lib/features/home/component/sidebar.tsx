@@ -2,9 +2,7 @@
 
 import Image from "next/image";
 import { Plus } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, type ElementType } from "react";
-import { PageRoutes } from "@/lib/cores/utils/navigation";
 
 type SidebarNavItem = {
   icon: ElementType;
@@ -32,7 +30,6 @@ export default function Sidebar({
   onCreateWordFile,
   onCreateExcelFile,
 }: SidebarProps) {
-  const router = useRouter();
   const [addButtonOpen, setAddButtonOpen] = useState(false);
 
   const buttonItems = [
@@ -51,9 +48,9 @@ export default function Sidebar({
         input.type = "file";
         input.multiple = true;
 
-        input.onchange = async (e) => {
-          const selectedFiles: File[] = e.currentTarget!.files
-            ? Array.from(e.currentTarget!.files)
+        input.onchange = async () => {
+          const selectedFiles: File[] = input.files
+            ? Array.from(input.files)
             : [];
           if (!selectedFiles.length) return;
 

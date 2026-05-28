@@ -123,7 +123,9 @@ export default function RecentGrid() {
                       key={item.id}
                       isFavourite={item.isFavourite}
                       name={item.name}
+                      id={item.id}
                       extension={item.extension}
+                      allowShareFile
                       statusLabel={item.category?.name ?? undefined}
                       statusColor={item.category?.color ?? undefined}
                       onTap={() => {

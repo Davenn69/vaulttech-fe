@@ -6,6 +6,10 @@ export class PageRoutes {
   static readonly repositoryFavourites = "/repo/favourites";
   static readonly repositoryTrash = "/repo/trash";
   static readonly repositoryCategory = "/repo/category";
+  static readonly repositoryShared = "/repo/shared";
+  static readonly repositoryReview = "/repo/review";
+  static readonly invitations = "/invitations";
+  static readonly invitationsHistory = "/invitations/history";
 
   static repositoryRoot() {
     const folderId = folderStorage.getParentFolderId();
@@ -14,6 +18,10 @@ export class PageRoutes {
 
   static repositoryFolder(id: string) {
     return `/repo/${id}`;
+  }
+
+  static repositoryReviewDetail(id: string) {
+    return `/repo/review/${id}`;
   }
 
   static wordFile(id: string) {
@@ -34,5 +42,9 @@ export class PageRoutes {
 
   static excelFile(id: string) {
     return `/excel/${id}`;
+  }
+
+  static repositoryInvitationDetail(id: string) {
+    return `/invitations/${id}`;
   }
 }

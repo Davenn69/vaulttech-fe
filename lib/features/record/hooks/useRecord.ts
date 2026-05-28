@@ -22,8 +22,6 @@ export default function useRecord(id?: string) {
         `/revision/${fileId}`,
       );
 
-      console.log("hello");
-
       setRecord(res.data);
       document.title = `${res.data.file.name} - Record`;
     } catch (caughtError) {

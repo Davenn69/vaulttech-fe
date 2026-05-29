@@ -35,7 +35,7 @@ export default function Sidebar({
   const buttonItems = [
     {
       label: "Add Folder",
-      iconRoute: "/assets/icons/Normal_File_Icon.svg",
+      iconRoute: "/assets/icons/Folder_Icon.svg",
       onClick: () => {
         onCreateFolder();
       },
@@ -78,12 +78,15 @@ export default function Sidebar({
 
   return (
     <aside className="flex h-full w-[200px] shrink-0 flex-col border-r border-[#222426] bg-[#111213] px-4 py-6">
-      <div className="mb-9 flex items-center gap-2 px-1">
-        <span className="text-lg leading-none text-[#6c5ce7]">*</span>
-        <span className="font-sans text-[18px] font-bold tracking-tight">
-          <span className="text-[#6c5ce7]">Vault</span>
-          <span className="text-[#fd7c5a]">tech</span>
-        </span>
+      <div className="mb-9 flex items-center gap-2 px-1 mt-2">
+        <Image
+          src="/assets/images/vaulttech-logo.png"
+          alt="VaultTech"
+          width={150}
+          height={40}
+          priority
+          className="h-auto w-[125px]"
+        />
       </div>
 
       <nav className="flex flex-1 flex-col gap-0.5">

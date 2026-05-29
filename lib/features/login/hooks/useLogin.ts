@@ -48,10 +48,7 @@ export function useLogin() {
       router.replace(`/repo/${folderId}`);
     },
     onError: (error: AxiosError<ApiResponseError>) => {
-      console.log(error.response?.data);
-      console.log(`error status ${error.response?.status}`);
-      console.log(`error headers ${error.response?.headers}`);
-      toast.error(error.response?.data?.message ?? "");
+      toast.error(error.message ?? "");
     },
   });
 }

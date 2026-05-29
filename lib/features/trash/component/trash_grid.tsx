@@ -2,14 +2,22 @@ import FileCard from "@/lib/cores/components/file_card";
 import FolderChip from "@/lib/cores/components/folder_chip";
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import EmptyState from "@/lib/cores/components/empty_state";
+import ConfirmModal from "@/lib/cores/components/confirm_modal";
 import { useTrash } from "../hooks/useTrash";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
 import { Trash2 } from "lucide-react";
+import { useUploadRefresh } from "../../home/context/upload_refresh_context";
 
 export default function TrashGrid() {
   const router = useRouter();
+  const [deleteTarget, setDeleteTarget] = useState<{
+    type: "file" | "folder";
+    id: string;
+    name: string;
+  } | null>(null);
+  const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
   const {
     loading,
     folders,
@@ -18,13 +26,27 @@ export default function TrashGrid() {
     fetchDeletedFolders,
     restoreFile,
     restoreFolder,
-  } = useTrash();
+    deletePermanentFile,
+    deletePermanentFolder,
+  } = useTrash(notifyUploadSuccess);
   const isEmpty = folders.length === 0 && files.length === 0;
+
+  const handleConfirmPermanentDelete = async () => {
+    if (!deleteTarget) return;
+
+    if (deleteTarget.type === "file") {
+      await deletePermanentFile(deleteTarget.id);
+    } else {
+      await deletePermanentFolder(deleteTarget.id);
+    }
+
+    setDeleteTarget(null);
+  };
 
   useEffect(() => {
     fetchDeletedFiles();
     fetchDeletedFolders();
-  }, [fetchDeletedFiles, fetchDeletedFolders]);
+  }, [fetchDeletedFiles, fetchDeletedFolders, refreshTick]);
 
   return (
     <PageWrapper isLoading={loading}>
@@ -47,10 +69,21 @@ export default function TrashGrid() {
                     name={folder.name}
                     menuItems={[
                       {
-                        label: "restore",
+                        label: "Restore",
                         danger: false,
                         onTap: () => {
                           restoreFolder(folder.id);
+                        },
+                      },
+                      {
+                        label: "Delete Permanently",
+                        danger: true,
+                        onTap: () => {
+                          setDeleteTarget({
+                            type: "folder",
+                            id: folder.id,
+                            name: folder.name,
+                          });
                         },
                       },
                     ]}
@@ -82,6 +115,17 @@ export default function TrashGrid() {
                           restoreFile(file.id);
                         },
                       },
+                      {
+                        label: "Delete Permanently",
+                        danger: true,
+                        onTap: () => {
+                          setDeleteTarget({
+                            type: "file",
+                            id: file.id,
+                            name: file.name,
+                          });
+                        },
+                      },
                     ]}
                   />
                 ))}
@@ -89,6 +133,20 @@ export default function TrashGrid() {
             )}
           </>
         )}
+
+        <ConfirmModal
+          open={deleteTarget !== null}
+          title="Delete permanently?"
+          description={
+            deleteTarget
+              ? `"${deleteTarget.name}" will be permanently deleted and cannot be recovered`
+              : ""
+          }
+          confirmLabel="Delete Permanently"
+          onClose={() => setDeleteTarget(null)}
+          onConfirm={handleConfirmPermanentDelete}
+          isLoading={loading}
+        />
       </main>
     </PageWrapper>
   );

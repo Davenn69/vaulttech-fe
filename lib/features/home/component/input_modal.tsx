@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { StringValidation } from "zod/v3";
 
 type InputModalProps = {
   open: boolean;
@@ -9,6 +10,7 @@ type InputModalProps = {
   isLoading?: boolean;
   initialValue?: string;
   title?: string;
+  buttonText?: string;
 };
 
 export default function InputModal({
@@ -18,6 +20,7 @@ export default function InputModal({
   isLoading = false,
   initialValue = "",
   title = "Update folder",
+  buttonText = "Update",
 }: InputModalProps) {
   const [name, setName] = useState(initialValue);
 
@@ -62,9 +65,6 @@ export default function InputModal({
           >
             {title}
           </h2>
-          <p className="text-sm text-[#8b9096]">
-            Give your folder a clear name so it is easy to find later.
-          </p>
         </div>
 
         <form className="mt-5 space-y-4" onSubmit={handleSubmit}>
@@ -94,7 +94,7 @@ export default function InputModal({
               disabled={isLoading || !name.trim()}
               className="rounded-xl bg-[#6c5ce7] px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-[#7d6ef0] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isLoading ? "Saving..." : "Update"}
+              {isLoading ? "Saving..." : buttonText}
             </button>
           </div>
         </form>

@@ -3,8 +3,8 @@
 import {
   FileText,
   Folder,
+  Download,
   Loader2,
-  RotateCcw,
   Search,
   User,
   LogOut,
@@ -166,13 +166,15 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
       <div className="flex items-center gap-2">
         <button
           onClick={onUploadToggle}
+          aria-label="Upload status"
+          title="Upload status"
           className="
             flex h-9 w-9 items-center justify-center rounded-xl
             text-[#7a7d82] transition-all duration-150
             hover:bg-[#252729] hover:text-[#e8e9ea]
           "
         >
-          <RotateCcw size={18} />
+          <Download size={18} />
         </button>
 
         <button

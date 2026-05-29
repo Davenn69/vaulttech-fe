@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import useRecent from "../hooks/useRecent";
 import FolderChip from "@/lib/cores/components/folder_chip";
 import FileCard from "@/lib/cores/components/file_card";
+import EmptyState from "@/lib/cores/components/empty_state";
 import { useFolderModal } from "../../home/context/folder_modal_context";
 import { useUploadRefresh } from "../../home/context/upload_refresh_context";
 import { useFileList } from "../../home/hooks/useFileList";
@@ -13,6 +14,7 @@ import { openFile } from "@/lib/cores/utils/fileUtils";
 import { useRouter } from "next/navigation";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
 import CategorySelectMenu from "../../category/component/category_select_menu";
+import { Clock3 } from "lucide-react";
 
 function formatGroupDate(dateValue: string) {
   const isoDateMatch = dateValue.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -58,6 +60,7 @@ export default function RecentGrid() {
     useFolderList(notifyUploadSuccess);
 
   const { recent, loading, fetchRecent } = useRecent();
+  const isEmpty = recent.length === 0;
 
   useEffect(() => {
     fetchRecent();
@@ -66,134 +69,142 @@ export default function RecentGrid() {
   return (
     <PageWrapper isLoading={loading}>
       <main className="flex w-full flex-1 flex-col gap-6 overflow-y-auto px-6 pt-6 pb-10 mb-20">
-        {recent.map((group) => (
-          <section key={group.date} className="space-y-3">
-            <h2 className="text-sm font-semibold text-zinc-400">
-              {formatGroupDate(group.date)}
-            </h2>
+        {isEmpty ? (
+          <EmptyState
+            icon={<Clock3 size={24} className="text-[#6c5ce7]" />}
+            title="Belum ada aktivitas terbaru"
+            description="Folder dan file yang baru dibuka atau diubah akan muncul di halaman ini supaya kamu mudah melacak pekerjaan terakhir."
+          />
+        ) : (
+          recent.map((group) => (
+            <section key={group.date} className="space-y-3">
+              <h2 className="text-sm font-semibold text-zinc-400">
+                {formatGroupDate(group.date)}
+              </h2>
 
-            <div className="space-y-4">
-              <div>
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-                  {group.folder.map((item) => (
-                    <FolderChip
-                      key={item.id}
-                      isFavourite={item.isFavourite}
-                      name={item.name}
-                      onTap={() =>
-                        router.push(PageRoutes.repositoryFolder(item.id))
-                      }
-                      menuItems={[
-                        {
-                          label: "Rename",
-                          danger: false,
-                          onTap: () =>
-                            openUpdateFolderModal(item.id, item.name),
-                        },
-                        {
-                          label: item.isFavourite
-                            ? "Remove from Favourites"
-                            : "Add to Favourites",
-                          danger: false,
-                          onTap: () => {
-                            if (item.isFavourite) {
-                              removeFolderFromFavourites(item.id);
-                            } else {
-                              addFolderToFavourite(item.id);
-                            }
+              <div className="space-y-4">
+                <div>
+                  <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    {group.folder.map((item) => (
+                      <FolderChip
+                        key={item.id}
+                        isFavourite={item.isFavourite}
+                        name={item.name}
+                        onTap={() =>
+                          router.push(PageRoutes.repositoryFolder(item.id))
+                        }
+                        menuItems={[
+                          {
+                            label: "Rename",
+                            danger: false,
+                            onTap: () =>
+                              openUpdateFolderModal(item.id, item.name),
                           },
-                        },
-                        {
-                          label: "Move to Trash",
-                          danger: true,
-                          onTap: () => {
-                            deleteFolder(item.id);
+                          {
+                            label: item.isFavourite
+                              ? "Remove from Favourites"
+                              : "Add to Favourites",
+                            danger: false,
+                            onTap: () => {
+                              if (item.isFavourite) {
+                                removeFolderFromFavourites(item.id);
+                              } else {
+                                addFolderToFavourite(item.id);
+                              }
+                            },
                           },
-                        },
-                      ]}
-                    />
-                  ))}
+                          {
+                            label: "Move to Trash",
+                            danger: true,
+                            onTap: () => {
+                              deleteFolder(item.id);
+                            },
+                          },
+                        ]}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    {group.file.map((item) => (
+                      <FileCard
+                        key={item.id}
+                        isFavourite={item.isFavourite}
+                        name={item.name}
+                        id={item.id}
+                        extension={item.extension}
+                        allowShareFile
+                        statusLabel={item.category?.name ?? undefined}
+                        statusColor={item.category?.color ?? undefined}
+                        onTap={() => {
+                          openFile(item.extension, item.id, router);
+                        }}
+                        menuItems={[
+                          {
+                            label: "Open",
+                            danger: false,
+                            onTap: () => {
+                              openFile(item.extension, item.id, router);
+                            },
+                          },
+                          {
+                            label: "Rename",
+                            danger: false,
+                            onTap: () => openUpdateFileModal(item.id, item.name),
+                          },
+                          {
+                            label: item.isFavourite
+                              ? "Remove from Favourites"
+                              : "Add to Favourites",
+                            danger: false,
+                            onTap: () => {
+                              if (item.isFavourite) {
+                                removeFileFromFavourites(item.id);
+                              } else {
+                                addFileToFavourite(item.id);
+                              }
+                            },
+                          },
+                          {
+                            label: "Download",
+                            danger: false,
+                            onTap: () => {
+                              downloadFile(item.id);
+                            },
+                          },
+                          {
+                            label: "Set Category",
+                            danger: false,
+                            onTap: () => {
+                              setSelectedFileForCategory({
+                                id: item.id,
+                                name: item.name,
+                              });
+                            },
+                          },
+                          {
+                            label: "History",
+                            danger: false,
+                            onTap: () => {
+                              router.push(PageRoutes.recordFile(item.id));
+                            },
+                          },
+                          {
+                            label: "Delete",
+                            danger: true,
+                            onTap: () => deleteFile(item.id),
+                          },
+                        ]}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
-
-              <div>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  {group.file.map((item) => (
-                    <FileCard
-                      key={item.id}
-                      isFavourite={item.isFavourite}
-                      name={item.name}
-                      id={item.id}
-                      extension={item.extension}
-                      allowShareFile
-                      statusLabel={item.category?.name ?? undefined}
-                      statusColor={item.category?.color ?? undefined}
-                      onTap={() => {
-                        openFile(item.extension, item.id, router);
-                      }}
-                      menuItems={[
-                        {
-                          label: "Open",
-                          danger: false,
-                          onTap: () => {
-                            openFile(item.extension, item.id, router);
-                          },
-                        },
-                        {
-                          label: "Rename",
-                          danger: false,
-                          onTap: () => openUpdateFileModal(item.id, item.name),
-                        },
-                        {
-                          label: item.isFavourite
-                            ? "Remove from Favourites"
-                            : "Add to Favourites",
-                          danger: false,
-                          onTap: () => {
-                            if (item.isFavourite) {
-                              removeFileFromFavourites(item.id);
-                            } else {
-                              addFileToFavourite(item.id);
-                            }
-                          },
-                        },
-                        {
-                          label: "Download",
-                          danger: false,
-                          onTap: () => {
-                            downloadFile(item.id);
-                          },
-                        },
-                        {
-                          label: "Set Category",
-                          danger: false,
-                          onTap: () => {
-                            setSelectedFileForCategory({
-                              id: item.id,
-                              name: item.name,
-                            });
-                          },
-                        },
-                        {
-                          label: "History",
-                          danger: false,
-                          onTap: () => {
-                            router.push(PageRoutes.recordFile(item.id));
-                          },
-                        },
-                        {
-                          label: "Delete",
-                          danger: true,
-                          onTap: () => deleteFile(item.id),
-                        },
-                      ]}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </section>
-        ))}
+            </section>
+          ))
+        )}
 
         <CategorySelectMenu
           open={selectedFileForCategory !== null}

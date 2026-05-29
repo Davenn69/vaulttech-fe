@@ -9,11 +9,13 @@ import { useFolderList } from "@/lib/features/home/hooks/useFolderList";
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import FolderChip from "@/lib/cores/components/folder_chip";
 import FileCard from "@/lib/cores/components/file_card";
+import EmptyState from "@/lib/cores/components/empty_state";
 import { useRouter } from "next/navigation";
 import ItemManager, { DraggableItemModel } from "../types/itemManager";
 import { PageRoutes } from "@/lib/cores/utils/navigation";
 import { isImageExtension, openFile } from "@/lib/cores/utils/fileUtils";
 import CategorySelectMenu from "../../category/component/category_select_menu";
+import { FolderOpen } from "lucide-react";
 
 export default function RepositoryGrid({ id }: { id: string }) {
   const router = useRouter();
@@ -64,6 +66,7 @@ export default function RepositoryGrid({ id }: { id: string }) {
     addFolderToFavourite,
     removeFolderFromFavourites,
   } = useFolderList(notifyUploadSuccess);
+  const isEmpty = folderList.length === 0 && files.length === 0;
 
   useEffect(() => {
     if (!id) return;
@@ -127,122 +130,131 @@ export default function RepositoryGrid({ id }: { id: string }) {
         ref={gridRef}
         className="flex-1 overflow-y-auto px-6 pt-6 pb-10 scrollbar-thin scrollbar-thumb-[#2a2c2e] scrollbar-track-transparent"
       >
-        {/* <DirectoryInfo /> */}
-
-        {/* Folders row */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {folderList.map((folder) => (
-            <div key={folder.id} data-item-id={folder.id} className="w-fit">
-              <FolderChip
-                isFavourite={folder.isFavourite}
-                name={folder.name}
-                menuItems={[
-                  {
-                    label: "Rename",
-                    danger: false,
-                    onTap: () => openUpdateFolderModal(folder.id, folder.name),
-                  },
-                  {
-                    label: folder.isFavourite
-                      ? "Remove from Favourites"
-                      : "Add to Favourites",
-                    danger: false,
-                    onTap: () => {
-                      if (folder.isFavourite) {
-                        removeFolderFromFavourites(folder.id);
-                      } else {
-                        addFolderToFavourite(folder.id);
-                      }
-                    },
-                  },
-                  {
-                    label: "Move to Trash",
-                    danger: true,
-                    onTap: () => {
-                      deleteFolder(folder.id);
-                    },
-                  },
-                ]}
-                onTap={() => {
-                  router.push(PageRoutes.repositoryFolder(folder.id));
-                }}
-              />
+        {isEmpty ? (
+          <EmptyState
+            icon={<FolderOpen size={24} className="text-[#fd7c5a]" />}
+            title="Repository masih kosong"
+            description="Belum ada folder atau file di dalam repository ini. Tambahkan item baru agar ruang kerja mulai terstruktur."
+          />
+        ) : (
+          <>
+            {/* Folders row */}
+            <div className="mb-5 flex flex-wrap gap-2">
+              {folderList.map((folder) => (
+                <div key={folder.id} data-item-id={folder.id} className="w-fit">
+                  <FolderChip
+                    isFavourite={folder.isFavourite}
+                    name={folder.name}
+                    menuItems={[
+                      {
+                        label: "Rename",
+                        danger: false,
+                        onTap: () =>
+                          openUpdateFolderModal(folder.id, folder.name),
+                      },
+                      {
+                        label: folder.isFavourite
+                          ? "Remove from Favourites"
+                          : "Add to Favourites",
+                        danger: false,
+                        onTap: () => {
+                          if (folder.isFavourite) {
+                            removeFolderFromFavourites(folder.id);
+                          } else {
+                            addFolderToFavourite(folder.id);
+                          }
+                        },
+                      },
+                      {
+                        label: "Move to Trash",
+                        danger: true,
+                        onTap: () => {
+                          deleteFolder(folder.id);
+                        },
+                      },
+                    ]}
+                    onTap={() => {
+                      router.push(PageRoutes.repositoryFolder(folder.id));
+                    }}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        {/* Files grid */}
-        <div className="grid grid-cols-5 gap-3.5 xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3">
-          {files.map((file) => (
-            <div key={file.id} data-item-id={file.id}>
-              <FileCard
-                onTap={() => openRepositoryFile(file)}
-                isFavourite={file.isFavourite}
-                name={file.name}
-                id={file.id}
-                extension={file.extension}
-                allowInviteReviewers
-                allowShareFile
-                statusLabel={file.category?.name}
-                statusColor={file.category?.color}
-                menuItems={[
-                  {
-                    label: "Open",
-                    danger: false,
-                    onTap: () => openRepositoryFile(file),
-                  },
-                  {
-                    label: "Rename",
-                    danger: false,
-                    onTap: () => openUpdateFileModal(file.id, file.name),
-                  },
-                  {
-                    label: file.isFavourite
-                      ? "Remove from Favourites"
-                      : "Add to Favourites",
-                    danger: false,
-                    onTap: () => {
-                      if (file.isFavourite) {
-                        removeFileFromFavourites(file.id);
-                      } else {
-                        addFileToFavourite(file.id);
-                      }
-                    },
-                  },
-                  {
-                    label: "Download",
-                    danger: false,
-                    onTap: () => {
-                      downloadFile(file.id);
-                    },
-                  },
-                  {
-                    label: "Set Category",
-                    danger: false,
-                    onTap: () => {
-                      setSelectedFileForCategory({
-                        id: file.id,
-                        name: file.name,
-                      });
-                    },
-                  },
-                  {
-                    label: "History",
-                    danger: false,
-                    onTap: () => {
-                      router.push(PageRoutes.recordFile(file.id));
-                    },
-                  },
-                  {
-                    label: "Delete",
-                    danger: true,
-                    onTap: () => deleteFile(file.id),
-                  },
-                ]}
-              />
+            {/* Files grid */}
+            <div className="grid grid-cols-5 gap-3.5 xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3">
+              {files.map((file) => (
+                <div key={file.id} data-item-id={file.id}>
+                  <FileCard
+                    onTap={() => openRepositoryFile(file)}
+                    isFavourite={file.isFavourite}
+                    name={file.name}
+                    id={file.id}
+                    extension={file.extension}
+                    allowInviteReviewers
+                    allowShareFile
+                    statusLabel={file.category?.name}
+                    statusColor={file.category?.color}
+                    menuItems={[
+                      {
+                        label: "Open",
+                        danger: false,
+                        onTap: () => openRepositoryFile(file),
+                      },
+                      {
+                        label: "Rename",
+                        danger: false,
+                        onTap: () => openUpdateFileModal(file.id, file.name),
+                      },
+                      {
+                        label: file.isFavourite
+                          ? "Remove from Favourites"
+                          : "Add to Favourites",
+                        danger: false,
+                        onTap: () => {
+                          if (file.isFavourite) {
+                            removeFileFromFavourites(file.id);
+                          } else {
+                            addFileToFavourite(file.id);
+                          }
+                        },
+                      },
+                      {
+                        label: "Download",
+                        danger: false,
+                        onTap: () => {
+                          downloadFile(file.id);
+                        },
+                      },
+                      {
+                        label: "Set Category",
+                        danger: false,
+                        onTap: () => {
+                          setSelectedFileForCategory({
+                            id: file.id,
+                            name: file.name,
+                          });
+                        },
+                      },
+                      {
+                        label: "History",
+                        danger: false,
+                        onTap: () => {
+                          router.push(PageRoutes.recordFile(file.id));
+                        },
+                      },
+                      {
+                        label: "Delete",
+                        danger: true,
+                        onTap: () => deleteFile(file.id),
+                      },
+                    ]}
+                  />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
 
         <CategorySelectMenu
           open={selectedFileForCategory !== null}

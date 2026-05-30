@@ -12,7 +12,7 @@ export function isImageExtension(extension: string) {
 
 export async function openPhotoViewer(id: string) {
   try {
-    const res = await api.get<ApiResponse<PhotoModel>>(`/file/${id}/signedUrl`);
+    const res = await api.get<ApiResponse<PhotoModel>>(`/file/${id}/photo`);
     return res.data;
   } catch {
     return undefined;

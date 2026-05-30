@@ -50,9 +50,6 @@ export function PhotoViewer({ open, title, src, onClose }: PhotoViewerProps) {
         <div className="flex items-center justify-between gap-3 border-b border-white/8 px-4 py-3 sm:px-5">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-white">{title}</p>
-            <p className="text-xs text-white/55">
-              Klik area gelap atau tekan Esc untuk menutup
-            </p>
           </div>
 
           <button

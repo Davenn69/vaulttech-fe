@@ -23,15 +23,12 @@ import {
   Underline as UnderlineIcon,
   Undo2,
 } from "lucide-react";
-import {
-  type ComponentType,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { type ComponentType, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import useWord from "../hooks/useWord";
+import { ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 import {
   EMPTY_DOCUMENT,
   normalizeEditorContent,
@@ -39,6 +36,7 @@ import {
 } from "../utils/word_editor_utils";
 
 export default function WordEditor({ id }: { id: string }) {
+  const router = useRouter();
   const {
     loading,
     saving,
@@ -85,80 +83,78 @@ export default function WordEditor({ id }: { id: string }) {
     nameInputRef.current?.select();
   }, [isEditingName]);
 
-  const editor = useEditor(
-    {
-      extensions: [
-        StarterKit.configure({
-          heading: {
-            levels: [1, 2, 3, 4, 5, 6],
-          },
-          codeBlock: {
-            HTMLAttributes: {
-              class: "word-code-block",
-            },
-          },
-        }),
-        Underline,
-        Link.configure({
-          openOnClick: false,
-          autolink: true,
-          linkOnPaste: true,
-        }),
-      ],
-      immediatelyRender: false,
-      content: content ?? EMPTY_DOCUMENT,
-      editorProps: {
-        attributes: {
-          class:
-            "min-h-[540px] w-full rounded-3xl border border-[#2a2c2e] bg-[#121315] px-6 py-5 text-[15px] leading-7 text-[#e8e9ea] outline-none focus:border-[#6c5ce7] focus:shadow-[0_0_0_3px_rgba(108,92,231,0.15)]",
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3, 4, 5, 6],
         },
+        codeBlock: {
+          HTMLAttributes: {
+            class: "word-code-block",
+          },
+        },
+      }),
+      Underline,
+      Link.configure({
+        openOnClick: false,
+        autolink: true,
+        linkOnPaste: true,
+      }),
+    ],
+    immediatelyRender: false,
+    content: content ?? EMPTY_DOCUMENT,
+    editorProps: {
+      attributes: {
+        class:
+          "min-h-[540px] w-full rounded-3xl border border-[#2a2c2e] bg-[#121315] px-6 py-5 text-[15px] leading-7 text-[#e8e9ea] outline-none focus:border-[#6c5ce7] focus:shadow-[0_0_0_3px_rgba(108,92,231,0.15)]",
       },
-      onUpdate: ({ editor }) => {
-        const nextContent = editor.getJSON();
-        const nextSignature = JSON.stringify(nextContent);
+    },
+    onUpdate: ({ editor }) => {
+      const nextContent = editor.getJSON();
+      const nextSignature = JSON.stringify(nextContent);
 
-        setEditorTick((current) => current + 1);
+      setEditorTick((current) => current + 1);
 
-        if (lastSavedSignatureRef.current === nextSignature) {
+      if (lastSavedSignatureRef.current === nextSignature) {
+        return;
+      }
+
+      if (pendingSaveTimeoutRef.current) {
+        clearTimeout(pendingSaveTimeoutRef.current);
+        pendingSaveTimeoutRef.current = null;
+      }
+
+      pendingSaveTimeoutRef.current = setTimeout(() => {
+        pendingSaveTimeoutRef.current = null;
+        const latestContent = editor.getJSON();
+        const latestSignature = JSON.stringify(latestContent);
+
+        if (lastSavedSignatureRef.current === latestSignature) {
           return;
         }
 
-        if (pendingSaveTimeoutRef.current) {
-          clearTimeout(pendingSaveTimeoutRef.current);
-          pendingSaveTimeoutRef.current = null;
-        }
-
-        pendingSaveTimeoutRef.current = setTimeout(() => {
-          pendingSaveTimeoutRef.current = null;
-          const latestContent = editor.getJSON();
-          const latestSignature = JSON.stringify(latestContent);
-
-          if (lastSavedSignatureRef.current === latestSignature) {
-            return;
+        void (async () => {
+          try {
+            autosyncInFlightRef.current = true;
+            await syncCollaboration(
+              id,
+              latestContent,
+              collaboration?.versionNumber,
+            );
+            lastSavedSignatureRef.current = latestSignature;
+          } catch {
+            // syncCollaboration already shows an error toast.
+          } finally {
+            autosyncInFlightRef.current = false;
           }
-
-          void (async () => {
-            try {
-              autosyncInFlightRef.current = true;
-              await syncCollaboration(
-                id,
-                latestContent,
-                collaboration?.versionNumber,
-              );
-              lastSavedSignatureRef.current = latestSignature;
-            } catch {
-              // syncCollaboration already shows an error toast.
-            } finally {
-              autosyncInFlightRef.current = false;
-            }
-          })();
-        }, 900);
-      },
-      onSelectionUpdate: () => {
-        setEditorTick((current) => current + 1);
-      },
+        })();
+      }, 900);
     },
-  );
+    onSelectionUpdate: () => {
+      setEditorTick((current) => current + 1);
+    },
+  });
 
   useEffect(() => {
     editorRef.current = editor;
@@ -379,6 +375,19 @@ export default function WordEditor({ id }: { id: string }) {
         <section className="flex min-w-0 flex-1 flex-col">
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#222426] bg-[#121315] px-5 py-4">
             <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => router.back()}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#2a2c2e] bg-[#1a1b1d] px-3 py-1.5 text-xs font-medium text-[#e8e9ea] transition-colors hover:bg-[#252729]"
+                >
+                  <ArrowLeft size={14} />
+                  Back
+                </button>
+                <p className="text-xs uppercase tracking-[0.24em] text-[#7a7d82]">
+                  Word editor
+                </p>
+              </div>
               {isEditingName ? (
                 <input
                   ref={nameInputRef}

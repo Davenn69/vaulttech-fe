@@ -15,7 +15,7 @@ import CategorySelectMenu from "./category_select_menu";
 export default function CategoryGrid() {
   const { files, fetchFilesByCategories, loading } = useCategories();
   const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
-  const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
+  const { openUpdateFileModal } = useFolderModal();
   const [selectedFileForCategory, setSelectedFileForCategory] = useState<{
     id: string;
     name: string;
@@ -34,7 +34,7 @@ export default function CategoryGrid() {
 
   return (
     <PageWrapper isLoading={loading}>
-      <main className="flex w-full flex-1 flex-col gap-6 overflow-y-auto px-6 pt-6 pb-10 mb-20">
+      <main className="flex-1 overflow-y-auto px-6 pt-6 pb-10 scrollbar-thin scrollbar-thumb-[#2a2c2e] scrollbar-track-transparent">
         {files.map((group) => (
           <section key={group.name} className="space-y-3">
             <h2 className="text-sm font-semibold text-zinc-400">
@@ -43,7 +43,7 @@ export default function CategoryGrid() {
 
             <div className="space-y-4">
               <div>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="grid grid-cols-5 gap-3.5 xl:grid-cols-5 lg:grid-cols-4 md:grid-cols-3">
                   {group.file.map((item) => (
                     <FileCard
                       key={item.id}

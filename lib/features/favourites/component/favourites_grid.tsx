@@ -51,8 +51,8 @@ export default function FavouriteGrid() {
         {isEmpty ? (
           <EmptyState
             icon={<Star size={24} className="fill-current text-[#f1c84c]" />}
-            title="Belum ada favorit"
-            description="Simpan folder dan file penting ke favorit supaya akses ke item yang sering dipakai jadi lebih cepat."
+            title="No favorites yet"
+            description="Save important folders and files to favorites so you can access frequently used items faster."
           />
         ) : (
           <>

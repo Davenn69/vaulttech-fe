@@ -54,8 +54,8 @@ export default function TrashGrid() {
         {isEmpty ? (
           <EmptyState
             icon={<Trash2 size={24} className="text-[#ff6b6b]" />}
-            title="Trash kosong"
-            description="Tidak ada folder atau file yang menunggu dipulihkan. Item yang dihapus akan muncul di sini."
+            title="Trash is empty"
+            description="There are no folders or files waiting to be restored. Deleted items will appear here."
           />
         ) : (
           <>

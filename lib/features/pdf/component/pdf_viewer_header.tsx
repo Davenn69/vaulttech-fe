@@ -70,14 +70,14 @@ export default function PdfViewerHeader({
             }}
             disabled={renaming}
             className="mt-2 w-full bg-transparent text-2xl font-semibold text-[#f5f6f7] outline-none placeholder:text-[#7a7d82] disabled:opacity-60"
-            placeholder="Nama file"
+            placeholder="File name"
           />
         ) : (
           <button
             type="button"
             onClick={onBeginRename}
             className="mt-2 block w-full min-w-0 text-left"
-            title="Klik untuk ubah nama file"
+            title="Click to rename the file"
           >
             <h1 className="truncate text-2xl font-semibold text-[#f5f6f7] transition-colors hover:text-white">
               {activeDocumentName}

@@ -44,7 +44,7 @@ export default function InvitationsPage() {
                   No pending invitations
                 </h3>
                 <p className="mt-1 text-sm text-[#7a7d82]">
-                  Semua invitation sudah diproses.
+                  All invitations have been processed.
                 </p>
               </div>
             ) : (

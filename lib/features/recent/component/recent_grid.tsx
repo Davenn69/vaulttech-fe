@@ -72,8 +72,8 @@ export default function RecentGrid() {
         {isEmpty ? (
           <EmptyState
             icon={<Clock3 size={24} className="text-[#6c5ce7]" />}
-            title="Belum ada aktivitas terbaru"
-            description="Folder dan file yang baru dibuka atau diubah akan muncul di halaman ini supaya kamu mudah melacak pekerjaan terakhir."
+            title="No recent activity yet"
+            description="Recently opened or modified folders and files will appear here so you can track your latest work easily."
           />
         ) : (
           recent.map((group) => (

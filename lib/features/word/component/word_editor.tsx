@@ -279,7 +279,7 @@ export default function WordEditor({ id }: { id: string }) {
     const trimmedName = nextName.trim();
 
     if (!trimmedName) {
-      toast.error("Nama file tidak boleh kosong");
+      toast.error("File name cannot be empty");
       return;
     }
 
@@ -347,7 +347,7 @@ export default function WordEditor({ id }: { id: string }) {
     if (!editor) return;
 
     const currentUrl = editor.getAttributes("link").href as string | undefined;
-    const nextUrl = window.prompt("Masukkan URL link", currentUrl ?? "");
+    const nextUrl = window.prompt("Enter the link URL", currentUrl ?? "");
 
     if (nextUrl === null) return;
 
@@ -409,7 +409,7 @@ export default function WordEditor({ id }: { id: string }) {
                   }}
                   disabled={renaming}
                   className="mt-2 w-full bg-transparent text-2xl font-semibold text-[#f5f6f7] outline-none placeholder:text-[#7a7d82] disabled:opacity-60"
-                  placeholder="Nama file"
+                  placeholder="File name"
                 />
               ) : (
                 <button
@@ -419,7 +419,7 @@ export default function WordEditor({ id }: { id: string }) {
                     setIsEditingName(true);
                   }}
                   className="mt-2 block w-full min-w-0 text-left"
-                  title="Klik untuk ubah nama file"
+                  title="Click to rename the file"
                 >
                   <h1 className="truncate text-2xl font-semibold text-[#f5f6f7] transition-colors hover:text-white">
                     {activeDocumentName}

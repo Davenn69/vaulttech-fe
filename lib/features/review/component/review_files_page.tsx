@@ -236,8 +236,9 @@ function ReviewedFileCard({
               />
             </div>
             <p className="mt-2 text-xs text-[#7a7d82]">
-              {getProgressLabel(item.invitation.status)}. File ini sudah
-              diproses dan statusnya bisa dipantau dari progress di atas.
+              {getProgressLabel(item.invitation.status)}. This file has already
+              been processed, and its status can be tracked from the progress
+              above.
             </p>
           </div>
         </div>
@@ -288,9 +289,9 @@ export default function ReviewFilesPage() {
                   Reviewable and reviewed files
                 </h2>
                 <p className="mt-1 text-sm leading-6 text-[#7a7d82]">
-                  Bagian ini memisahkan file yang masih bisa di-accept atau
-                  decline, dan file yang sudah direview untuk memantau status
-                  progress-nya.
+                  This section separates files that can still be accepted or
+                  declined from files that have already been reviewed, so you
+                  can track progress more easily.
                 </p>
               </div>
             </div>

@@ -48,8 +48,8 @@ export function FileUploader({
                 </h2>
                 <p className="text-xs text-[#8b9096]">
                   {uploadingCount > 0
-                    ? "Sedang mengunggah file"
-                    : "Riwayat upload terbaru"}
+                    ? "Uploading files"
+                    : "Latest upload history"}
                 </p>
               </div>
             </div>
@@ -181,7 +181,7 @@ export function FileUploader({
                             )}
                             {item.error ?? `${item.progress}%`}
                           </span>
-                          <span>{isDone ? "Selesai" : "Aktif"}</span>
+                          <span>{isDone ? "Done" : "Active"}</span>
                         </div>
                       </div>
                     </div>
@@ -192,17 +192,17 @@ export function FileUploader({
 
             {remainingCount > 0 && (
               <div className="rounded-2xl border border-dashed border-[#2b2e33] bg-[#111213] px-4 py-3 text-center text-xs text-[#8b9096]">
-                +{remainingCount} file lainnya
+                +{remainingCount} more files
               </div>
             )}
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-[#2b2e33] bg-[#111213] px-4 py-8 text-center">
             <p className="text-sm font-medium text-[#d7dbe0]">
-              Belum ada riwayat upload
+              No upload history yet
             </p>
             <p className="mt-1 text-xs text-[#757c85]">
-              File yang sedang diupload akan muncul di panel ini.
+              Files that are currently uploading will appear in this panel.
             </p>
           </div>
         )}

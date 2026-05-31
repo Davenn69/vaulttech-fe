@@ -158,7 +158,7 @@ export default function CategorySelectMenu({
                     Ready to create a category
                   </p>
                   <p className="mt-1 text-xs leading-5 text-[#7a7d82]">
-                    Klik Create untuk membuka form dan menyesuaikan warna.
+                    Click Create to open the form and adjust the color.
                   </p>
                 </div>
                 <div

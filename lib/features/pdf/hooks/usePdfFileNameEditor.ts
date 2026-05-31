@@ -55,7 +55,7 @@ export default function usePdfFileNameEditor({
       const trimmedName = nextName.trim();
 
       if (!trimmedName) {
-        toast.error("Nama file tidak boleh kosong");
+        toast.error("File name cannot be empty");
         return;
       }
 

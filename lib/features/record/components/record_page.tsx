@@ -242,7 +242,7 @@ export default function RecordPage({ id }: RecordPageProps) {
                       />
                     ) : (
                       <div className="flex min-h-[640px] items-center justify-center px-6 py-12 text-center text-sm text-[#7a7d82]">
-                        Preview belum tersedia untuk tipe file ini.
+                        Preview is not available for this file type.
                       </div>
                     )}
                   </div>

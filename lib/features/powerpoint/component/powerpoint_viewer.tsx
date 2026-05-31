@@ -89,9 +89,9 @@ export default function PowerpointViewer({ id }: PowerpointViewerProps) {
                     />
                   ) : (
                     <div className="flex h-full items-center justify-center p-6 text-center text-sm text-white/55">
-                      PowerPoint preview belum tersedia. Pastikan backend
-                      mengembalikan signed download URL yang bisa diakses oleh
-                      Microsoft Office web viewer.
+                      PowerPoint preview is not available yet. Make sure the
+                      backend returns a signed download URL that Microsoft
+                      Office web viewer can access.
                     </div>
                   )}
                 </div>

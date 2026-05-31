@@ -133,8 +133,8 @@ export default function RepositoryGrid({ id }: { id: string }) {
         {isEmpty ? (
           <EmptyState
             icon={<FolderOpen size={24} className="text-[#fd7c5a]" />}
-            title="Repository masih kosong"
-            description="Belum ada folder atau file di dalam repository ini. Tambahkan item baru agar ruang kerja mulai terstruktur."
+            title="Repository is empty"
+            description="There are no folders or files in this repository yet. Add new items to start organizing your workspace."
           />
         ) : (
           <>

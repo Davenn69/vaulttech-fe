@@ -29,7 +29,7 @@
     "handsontable": "^17.0.1",
     "jspreadsheet-ce": "^5.0.4",
     "lucide-react": "^0.562.0",
-    "next": "16.0.1",
+    "next": "^16.2.7",
     "quill": "^2.0.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

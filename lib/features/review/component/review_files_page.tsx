@@ -192,9 +192,6 @@ function ReviewedFileCard({
             <h3 className="text-base font-semibold text-[#f6f7f8]">
               {item.file.name}
             </h3>
-            <p className="mt-1 break-all text-sm text-[#7a7d82]">
-              {item.file.path}
-            </p>
           </div>
 
           <div className="flex flex-wrap gap-2 text-xs text-[#7a7d82]">

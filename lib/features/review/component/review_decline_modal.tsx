@@ -74,8 +74,8 @@ export default function ReviewDeclineModal({
               Decline document
             </h2>
             <p className="text-sm leading-6 text-[#8b9096]">
-              Tambahkan komentar agar pemilik file tahu alasan dokumen ini
-              ditolak.
+              Add a comment so the file owner knows why this document was
+              declined.
             </p>
           </div>
 
@@ -96,7 +96,7 @@ export default function ReviewDeclineModal({
               autoFocus
               value={comment}
               onChange={(event) => setComment(event.target.value)}
-              placeholder="Contoh: Tolong perbaiki format penamaan file dan tambahkan lampiran yang diminta."
+              placeholder="Example: Please fix the file naming format and add the requested attachment."
               rows={5}
               className="w-full resize-none rounded-2xl border border-[#2a2c2e] bg-[#111213] px-4 py-3 text-sm text-[#f1f3f5] outline-none transition-colors placeholder:text-[#5f656d] focus:border-[#6c5ce7]"
             />

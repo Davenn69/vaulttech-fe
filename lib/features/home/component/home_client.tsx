@@ -198,6 +198,8 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* Create Folder Modal */}
       <InputModal
+        title="Create Folder"
+        buttonText="Create"
         open={showCreateFolder}
         onClose={() => setShowCreateFolder(false)}
         onSubmit={async function (folderName: string): Promise<void> {

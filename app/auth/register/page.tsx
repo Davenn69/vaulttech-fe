@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -9,13 +10,12 @@ import {
 } from "@/components/ui/card";
 import AppButton from "@/lib/cores/components/button";
 import TextField from "@/lib/cores/components/custom_text_field";
-import { Gap } from "@/lib/cores/components/gap";
 import PageWrapper from "@/lib/cores/components/page_wrapper";
 import { textTheme } from "@/lib/cores/constants/textTheme";
 import { useRegisterFunction } from "@/lib/features/register/viewmodel/registerVM";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
-import z from "zod";
+import { z } from "zod";
 
 const formSchema = z
   .object({
@@ -25,7 +25,10 @@ const formSchema = z
       .min(8, "Password must be at least 8 characters")
       .regex(/[A-Z]/, "At least one uppercase letter")
       .regex(/[0-9]/, "At least one number"),
-    username: z.string().max(36, "Username must be under 36 characters"),
+    username: z
+      .string()
+      .min(3, "Username must be at least 3 characters")
+      .max(36, "Username must be under 36 characters"),
     confirmPassword: z.string(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -34,10 +37,11 @@ const formSchema = z
   });
 
 export default function RegisterPage() {
-  const { onSubmit, isLoading, error } = useRegisterFunction();
+  const { onSubmit, isLoading } = useRegisterFunction();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "onTouched",
     defaultValues: {
       email: "",
       password: "",
@@ -47,21 +51,18 @@ export default function RegisterPage() {
   });
 
   return (
-    <PageWrapper isLoading={isLoading}>
-      <div className="w-full h-full flex content-center justify-center">
-        <Gap value="pt-4" />
-        <Card className="border border-gray2 px-12 py-4">
-          <CardHeader className="flex justify-center items-center pt-4">
-            <CardTitle className={textTheme.heading1}>
-              Register an account
-            </CardTitle>
-            <CardDescription>
-              Start registering to unlock VaultTech’s awesome features
+    <PageWrapper isLoading={isLoading} className="min-h-dvh items-center px-4 py-8 sm:px-6">
+      <div className="w-full max-w-md">
+        <Card className="border-white/10 bg-[#0f1726]/85 shadow-2xl shadow-black/30 backdrop-blur-xl">
+          <CardHeader className="space-y-2 p-8 pb-4">
+            <CardTitle className={textTheme.heading1}>Create account</CardTitle>
+            <CardDescription className="text-gray1">
+              Set up your VaultTech account.
             </CardDescription>
           </CardHeader>
 
-          <CardContent className="w-full flex flex-col">
-            <form onSubmit={form.handleSubmit(onSubmit)}>
+          <CardContent className="p-8 pt-0">
+            <form className="space-y-4" onSubmit={form.handleSubmit(onSubmit)}>
               <Controller
                 name="username"
                 control={form.control}
@@ -70,12 +71,15 @@ export default function RegisterPage() {
                     {...field}
                     id="username"
                     label="Username"
-                    hint="Enter your username"
+                    hint="Choose a username"
+                    autoComplete="username"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     error={fieldState.error?.message}
                   />
                 )}
               />
-              <Gap value="pt-4"></Gap>
+
               <Controller
                 name="email"
                 control={form.control}
@@ -84,12 +88,16 @@ export default function RegisterPage() {
                     {...field}
                     id="email"
                     label="Email"
-                    hint="Enter your email"
+                    type="email"
+                    hint="name@company.com"
+                    autoComplete="email"
+                    autoCapitalize="none"
+                    spellCheck={false}
                     error={fieldState.error?.message}
                   />
                 )}
               />
-              <Gap value="pt-4"></Gap>
+
               <Controller
                 name="password"
                 control={form.control}
@@ -98,13 +106,14 @@ export default function RegisterPage() {
                     {...field}
                     id="password"
                     label="Password"
-                    isPassword={true}
-                    hint="Enter your password"
+                    isPassword
+                    hint="Create a password"
+                    autoComplete="new-password"
                     error={fieldState.error?.message}
                   />
                 )}
               />
-              <Gap value="pt-4"></Gap>
+
               <Controller
                 name="confirmPassword"
                 control={form.control}
@@ -112,16 +121,26 @@ export default function RegisterPage() {
                   <TextField
                     {...field}
                     id="confirmPassword"
-                    label="Confirm Password"
-                    isPassword={true}
+                    label="Confirm password"
+                    isPassword
                     hint="Re-enter your password"
+                    autoComplete="new-password"
                     error={fieldState.error?.message}
                   />
                 )}
               />
-              <Gap value="pt-8" />
+
               <AppButton label="Register" type="submit" />
-              <Gap value="pt-4" />
+
+              <p className="text-center text-sm text-gray1">
+                Already have an account?{" "}
+                <Link
+                  href="/auth/login"
+                  className="font-medium text-white transition-colors hover:text-blue2"
+                >
+                  Log in
+                </Link>
+              </p>
             </form>
           </CardContent>
         </Card>

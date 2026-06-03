@@ -1,6 +1,6 @@
 "use client";
 
-import { ExternalLink, RefreshCw } from "lucide-react";
+import { ArrowLeft, ExternalLink, RefreshCw } from "lucide-react";
 import type { RefObject } from "react";
 
 type PdfViewerHeaderProps = {
@@ -15,6 +15,7 @@ type PdfViewerHeaderProps = {
   onDocumentNameChange: (value: string) => void;
   onReload: () => void;
   onSubmitRename: () => void;
+  onBack: () => void;
   nameInputRef: RefObject<HTMLInputElement | null>;
 };
 
@@ -30,14 +31,25 @@ export default function PdfViewerHeader({
   onDocumentNameChange,
   onReload,
   onSubmitRename,
+  onBack,
   nameInputRef,
 }: PdfViewerHeaderProps) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#222426] px-5 py-4">
       <div className="min-w-0 flex-1">
-        <p className="text-xs uppercase tracking-[0.24em] text-[#7a7d82]">
-          PDF viewer
-        </p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 rounded-full border border-[#2a2c2e] bg-[#1a1b1d] px-3 py-1.5 text-xs font-medium text-[#e8e9ea] transition-colors hover:bg-[#252729]"
+          >
+            <ArrowLeft size={14} />
+            Back
+          </button>
+          <p className="text-xs uppercase tracking-[0.24em] text-[#7a7d82]">
+            PDF viewer
+          </p>
+        </div>
         {isEditingName ? (
           <input
             ref={nameInputRef}
@@ -58,14 +70,14 @@ export default function PdfViewerHeader({
             }}
             disabled={renaming}
             className="mt-2 w-full bg-transparent text-2xl font-semibold text-[#f5f6f7] outline-none placeholder:text-[#7a7d82] disabled:opacity-60"
-            placeholder="Nama file"
+            placeholder="File name"
           />
         ) : (
           <button
             type="button"
             onClick={onBeginRename}
             className="mt-2 block w-full min-w-0 text-left"
-            title="Klik untuk ubah nama file"
+            title="Click to rename the file"
           >
             <h1 className="truncate text-2xl font-semibold text-[#f5f6f7] transition-colors hover:text-white">
               {activeDocumentName}

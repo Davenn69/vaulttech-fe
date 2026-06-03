@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/button";
 import { ButtonVariant, buttonVariants } from "../types/buttonTypes";
-import { ButtonHTMLAttributes } from "react";
 
 export type ButtonProps = {
   label: string;
@@ -11,7 +10,6 @@ export type ButtonProps = {
   size?: string;
   backgroundColor?: string;
   variant?: ButtonVariant;
-  margin?: string;
 };
 
 const AppButton = ({
@@ -19,17 +17,16 @@ const AppButton = ({
   onClick,
   type = undefined,
   disabled = false,
-  borderRadius = "rounded-10",
+  borderRadius = "rounded-xl",
   size = "text-base",
   variant = "blue",
-  margin,
 }: ButtonProps) => {
   return (
     <Button
       onClick={onClick}
       disabled={disabled}
       type={type}
-      className={`w-full ${borderRadius} font-[500] ${size} p-4 ${buttonVariants[variant]}`}
+      className={`w-full ${borderRadius} px-4 py-3 font-semibold shadow-sm transition-transform duration-150 active:scale-[0.99] focus-visible:ring-2 focus-visible:ring-blue1/40 ${size} ${buttonVariants[variant]}`}
     >
       {label}
     </Button>

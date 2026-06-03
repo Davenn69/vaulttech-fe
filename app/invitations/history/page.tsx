@@ -29,15 +29,15 @@ export default function InvitationHistoryPage() {
               Processed invitations
             </h2>
             <p className="text-sm text-[#7a7d82]">
-              Semua invitation yang sudah di-accept atau di-decline akan muncul
-              di sini.
+              All invitations that have been accepted or declined will appear
+              here.
             </p>
           </div>
 
           <div className="grid gap-4">
             {processedInvitations.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-[#2a2c2e] bg-[#111213] px-6 py-12 text-center text-sm text-[#7a7d82]">
-                Belum ada invitation yang diproses.
+                No processed invitations yet.
               </div>
             ) : (
               processedInvitations.map((item) => (

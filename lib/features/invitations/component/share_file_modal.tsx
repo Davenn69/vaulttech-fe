@@ -76,7 +76,7 @@ function ShareFileDialog({
             Create permission
           </h2>
           <p className="text-sm leading-6 text-[#8b9096]">
-            Pilih user dan jenis permission untuk file
+            Select a user and permission type for the file
             {fileName ? ` "${fileName}"` : ""}.
           </p>
         </div>
@@ -118,12 +118,12 @@ function ShareFileDialog({
               {
                 value: "read" as const,
                 title: "Read",
-                description: "User hanya bisa melihat file.",
+                description: "User can only view the file.",
               },
               {
                 value: "write" as const,
                 title: "Write",
-                description: "User bisa melihat dan mengedit file.",
+                description: "User can view and edit the file.",
               },
             ].map((option) => {
               const selected = permissionType === option.value;

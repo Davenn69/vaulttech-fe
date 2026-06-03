@@ -4,12 +4,14 @@ import PageWrapper from "@/lib/cores/components/page_wrapper";
 import PdfViewerHeader from "./pdf_viewer_header";
 import usePdfFileNameEditor from "../hooks/usePdfFileNameEditor";
 import usePdf from "../hooks/usePdf";
+import { useRouter } from "next/navigation";
 
 type PdfViewerProps = {
   id: string;
 };
 
 export default function PdfViewer({ id }: PdfViewerProps) {
+  const router = useRouter();
   const { loading, downloadUrl, pdfUrl, fileName, fetchPdf, renameFile } =
     usePdf(id);
   const {
@@ -44,6 +46,7 @@ export default function PdfViewer({ id }: PdfViewerProps) {
             onDocumentNameChange={setDocumentName}
             onReload={() => void fetchPdf(id)}
             onSubmitRename={submitRename}
+            onBack={() => router.back()}
             nameInputRef={nameInputRef}
           />
 

@@ -177,7 +177,7 @@ export default function FileCard({
 
   const handleSendInvites = () => {
     if (!selectedReviewerId) {
-      toast.error("Pilih minimal satu reviewer dulu.");
+      toast.error("Select at least one reviewer first.");
       return;
     }
 
@@ -186,7 +186,7 @@ export default function FileCard({
     );
 
     if (!id || !selectedReviewer) {
-      toast.error("Tidak bisa mengirim invite.");
+      toast.error("Unable to send the invite.");
       return;
     }
 
@@ -402,7 +402,7 @@ export default function FileCard({
                       Invite reviewers
                     </h3>
                     <p className="text-sm text-[#7a7d82]">
-                      Pilih user untuk review file{" "}
+                      Select a user to review file{" "}
                       <span className="text-[#e8e9ea]">{name}</span>.
                     </p>
                   </div>

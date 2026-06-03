@@ -64,7 +64,7 @@ export function FileItem({ item }: FileItemProps) {
             </div>
 
             <div className="flex justify-between text-[11px] text-[#757c85]">
-              <span>{status === "success" ? "Selesai diupload" : label}</span>
+              <span>{status === "success" ? "Uploaded" : label}</span>
               <span>{progress}%</span>
             </div>
           </div>

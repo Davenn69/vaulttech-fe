@@ -113,7 +113,7 @@ class ItemManager {
     if (!draggedItem || draggedItem.id === target.id) return;
 
     if (this.isDescendant(draggedItem.id, target.id)) {
-      console.warn("Tidak bisa memindahkan folder ke dalam dirinya sendiri");
+      console.warn("Cannot move a folder into itself");
       return;
     }
 
@@ -140,7 +140,7 @@ class ItemManager {
     const { draggedItem, previousParentId } = this.dragState;
     if (draggedItem && previousParentId) {
       this.updateParent(draggedItem.id, previousParentId);
-      console.warn("Move gagal, posisi dikembalikan");
+      console.warn("Move failed, position restored");
     }
   }
 

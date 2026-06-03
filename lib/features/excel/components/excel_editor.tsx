@@ -9,11 +9,7 @@ import { ApiResponse, ApiResponseError } from "@/lib/cores/types/api_response";
 import { api } from "@/lib/cores/utils/api";
 import axios from "axios";
 import toast from "react-hot-toast";
-import {
-  ExcelCellValue,
-  ExcelWorkbookContent,
-  useExcel,
-} from "../hooks/useExcel";
+import { useExcel } from "../hooks/useExcel";
 import { DownloadFileUrl } from "../../home/types/file";
 import {
   Bold,
@@ -37,7 +33,10 @@ import {
   Eye,
   Download,
   Save,
+  ArrowLeft,
 } from "lucide-react";
+import { ExcelCellValue, ExcelWorkbookContent } from "../types/excel";
+import { useRouter } from "next/navigation";
 
 type ExcelEditorProps = {
   workbookId: string;
@@ -54,8 +53,8 @@ type SelectionBounds = {
   highlightCol: number;
 };
 
-const ROWS = 40;
-const COLS = 16;
+const DEFAULT_ROWS = 40;
+const DEFAULT_COLS = 16;
 const DEFAULT_FONT_SIZE = 14;
 
 function buildColumns(total: number) {
@@ -79,6 +78,38 @@ function createInitialData(rows: number, cols: number) {
   );
 
   return data;
+}
+
+function getWorkbookDimensions(data: Array<Array<ExcelCellValue>>) {
+  return data.reduce(
+    (dimensions, row) => ({
+      rows: dimensions.rows + 1,
+      cols: Math.max(dimensions.cols, row.length),
+    }),
+    { rows: 0, cols: 0 },
+  );
+}
+
+function normalizeTableData(
+  data: Array<Array<ExcelCellValue>> | undefined,
+  fallbackRows = DEFAULT_ROWS,
+  fallbackCols = DEFAULT_COLS,
+) {
+  if (!data || data.length === 0) {
+    return createInitialData(fallbackRows, fallbackCols);
+  }
+
+  const { rows, cols } = getWorkbookDimensions(data);
+  const nextRows = Math.max(rows, fallbackRows);
+  const nextCols = Math.max(cols, fallbackCols);
+
+  return Array.from({ length: nextRows }, (_, rowIndex) => {
+    const row = data[rowIndex] ?? [];
+    return Array.from(
+      { length: nextCols },
+      (_, colIndex) => row[colIndex] ?? "",
+    );
+  });
 }
 
 function toColumnLabel(column: number) {
@@ -158,6 +189,7 @@ function isCustomMetaDefined(meta: ExcelCellMetaEntry) {
 }
 
 export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
+  const router = useRouter();
   const hotRef = useRef<HotTableRef | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const selectionRef = useRef<SelectionBounds | null>({
@@ -186,15 +218,27 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const [documentName, setDocumentName] = useState("Spreadsheet");
   const [isEditingName, setIsEditingName] = useState(false);
   const [renaming, setRenaming] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const previousNameRef = useRef("Spreadsheet");
   const activeDocumentName = fileName ?? documentName;
 
   const [tableData, setTableData] = useState<Array<Array<ExcelCellValue>>>(() =>
-    createInitialData(ROWS, COLS),
+    createInitialData(DEFAULT_ROWS, DEFAULT_COLS),
   );
-  const columnLabels = useMemo(() => buildColumns(COLS), []);
+  const [sheetDimensions, setSheetDimensions] = useState({
+    rows: DEFAULT_ROWS,
+    cols: DEFAULT_COLS,
+  });
+  const columnLabels = useMemo(
+    () => buildColumns(sheetDimensions.cols),
+    [sheetDimensions.cols],
+  );
   const hotStyle = useMemo(() => ({ width: "100%", height: "100%" }), []);
   const formulas = useMemo(() => ({ engine: HyperFormula }), []);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!fileName) return;
@@ -284,12 +328,14 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     (hot: Handsontable.Core, workbook?: ExcelWorkbookContent) => {
       if (!workbook) return;
 
-      const nextData =
-        workbook.data.length > 0
-          ? workbook.data
-          : createInitialData(ROWS, COLS);
+      const nextData = normalizeTableData(workbook.data);
+      const nextDimensions = getWorkbookDimensions(nextData);
 
       setTableData(nextData);
+      setSheetDimensions((current) => ({
+        rows: Math.max(current.rows, nextDimensions.rows),
+        cols: Math.max(current.cols, nextDimensions.cols),
+      }));
 
       hot.batch(() => {
         FORMATTING_KEYS.forEach((key) => {
@@ -300,7 +346,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
           }
         });
 
-        workbook.cellMeta?.forEach((meta) => {
+        workbook.cellMeta?.forEach((meta: any) => {
           if (!isCustomMetaDefined(meta)) return;
 
           const {
@@ -355,18 +401,9 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     syncSelection(hotRef.current?.hotInstance ?? null);
   }, [syncSelection]);
 
-  const handleAfterSelectionEnd = useCallback(
-    (
-      _row: number,
-      _column: number,
-      _row2: number,
-      _column2: number,
-      _selectionLayerLevel: number,
-    ) => {
-      syncSelection(hotRef.current?.hotInstance ?? null);
-    },
-    [syncSelection],
-  );
+  const handleAfterSelectionEnd = useCallback(() => {
+    syncSelection(hotRef.current?.hotInstance ?? null);
+  }, [syncSelection]);
 
   const handleAfterChange = useCallback(
     (_changes: unknown, source: string) => {
@@ -382,6 +419,17 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     },
     [updateSelectedState],
   );
+
+  const handleAfterCreateOrRemove = useCallback(() => {
+    const hot = hotRef.current?.hotInstance ?? null;
+    if (hot) {
+      setSheetDimensions({
+        rows: hot.countRows(),
+        cols: hot.countCols(),
+      });
+    }
+    updateSelectedState(hot);
+  }, [updateSelectedState]);
 
   const renderCellProps = useCallback((row: number, col: number) => {
     const cellProperties = {} as Handsontable.CellProperties & {
@@ -505,42 +553,6 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     });
   };
 
-  const insertRow = (above: boolean) => {
-    const hot = hotRef.current?.hotInstance;
-    if (!hot) return;
-    const selected = hot.getSelectedLast();
-    const row = selected ? selected[0] : 0;
-    hot.alter(above ? "insert_row_above" : "insert_row_below", row, 1);
-    hot.render();
-  };
-
-  const insertColumn = (start: boolean) => {
-    const hot = hotRef.current?.hotInstance;
-    if (!hot) return;
-    const selected = hot.getSelectedLast();
-    const col = selected ? selected[1] : 0;
-    hot.alter(start ? "insert_col_start" : "insert_col_end", col, 1);
-    hot.render();
-  };
-
-  const removeRow = () => {
-    const hot = hotRef.current?.hotInstance;
-    if (!hot) return;
-    const selected = hot.getSelectedLast();
-    const row = selected ? selected[0] : 0;
-    hot.alter("remove_row", row, 1);
-    hot.render();
-  };
-
-  const removeColumn = () => {
-    const hot = hotRef.current?.hotInstance;
-    if (!hot) return;
-    const selected = hot.getSelectedLast();
-    const col = selected ? selected[1] : 0;
-    hot.alter("remove_col", col, 1);
-    hot.render();
-  };
-
   const mergeSelection = () => {
     const hot = hotRef.current?.hotInstance;
     if (!hot) return;
@@ -592,7 +604,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     const trimmedName = nextName.trim();
 
     if (!trimmedName) {
-      toast.error("Nama file tidak boleh kosong");
+      toast.error("File name cannot be empty");
       return;
     }
 
@@ -654,7 +666,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         `/file/download/${workbookId}`,
       );
 
-      const { downloadUrl, name } = res.data.data;
+      const { downloadUrl } = res.data;
 
       if (!downloadUrl) {
         throw new Error("Missing download url");
@@ -662,7 +674,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
       const link = document.createElement("a");
       link.href = downloadUrl;
-      link.download = name || `${activeDocumentName}.xlsx`;
+      link.download = `${activeDocumentName}.xlsx`;
       link.rel = "noreferrer";
       document.body.appendChild(link);
       link.click();
@@ -684,7 +696,20 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         <div className="overflow-hidden rounded-[28px] border border-white/10 bg-white/5 shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-xl">
           <div className="flex flex-col gap-4 border-b border-white/10 px-4 py-4 md:px-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-start gap-3">
+                <div className="flex flex-row gap-3 items-center">
+                  <button
+                    type="button"
+                    onClick={() => router.back()}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[#2a2c2e] bg-[#1a1b1d] px-3 py-1.5 text-xs font-medium text-[#e8e9ea] transition-colors hover:bg-[#252729]"
+                  >
+                    <ArrowLeft size={14} />
+                    Back
+                  </button>
+                  <p className="text-xs uppercase tracking-[0.24em] text-[#7a7d82]">
+                    Excel editor
+                  </p>
+                </div>
                 <div>
                   {isEditingName ? (
                     <input
@@ -707,7 +732,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                       }}
                       disabled={renaming}
                       className="mt-2 w-full bg-transparent text-2xl font-semibold text-[#f5f6f7] outline-none placeholder:text-[#7a7d82] disabled:opacity-60"
-                      placeholder="Nama file"
+                      placeholder="File name"
                     />
                   ) : (
                     <button
@@ -717,7 +742,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                         setIsEditingName(true);
                       }}
                       className="mt-2 block w-full min-w-0 text-left"
-                      title="Klik untuk ubah nama file"
+                      title="Click to rename the file"
                     >
                       <h1 className="truncate text-2xl font-semibold text-[#f5f6f7] transition-colors hover:text-white">
                         {activeDocumentName}
@@ -743,7 +768,9 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                   <Eye size={16} />
                   {selectedAddress}
                   <span className="text-white/30">|</span>
-                  <span className="max-w-[280px] truncate">{selectedValue}</span>
+                  <span className="max-w-[280px] truncate">
+                    {selectedValue}
+                  </span>
                 </div>
               </div>
             </div>
@@ -831,30 +858,6 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                 <Merge size={16} />
                 Merge
               </button>
-              <button onClick={() => insertRow(true)} className="tool-btn">
-                <Plus size={16} />
-                Row above
-              </button>
-              <button onClick={() => insertRow(false)} className="tool-btn">
-                <Plus size={16} />
-                Row below
-              </button>
-              <button onClick={() => insertColumn(true)} className="tool-btn">
-                <Plus size={16} />
-                Col left
-              </button>
-              <button onClick={() => insertColumn(false)} className="tool-btn">
-                <Plus size={16} />
-                Col right
-              </button>
-              <button onClick={removeRow} className="tool-btn">
-                <Minus size={16} />
-                Remove row
-              </button>
-              <button onClick={removeColumn} className="tool-btn">
-                <Minus size={16} />
-                Remove col
-              </button>
               <button onClick={clearFormatting} className="tool-btn">
                 <Eraser size={16} />
                 Clear style
@@ -913,35 +916,43 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
           </div>
 
           <div className="h-[calc(100vh-320px)] min-h-[560px] bg-[#111316]">
-            <HotTable
-              ref={hotRef}
-              className="ht-theme-main-dark"
-              style={hotStyle}
-              data={tableData}
-              colHeaders={columnLabels}
-              rowHeaders={true}
-              colWidths={120}
-              rowHeights={32}
-              width="100%"
-              height="100%"
-              stretchH="all"
-              manualColumnResize={true}
-              manualRowResize={true}
-              hiddenColumns={false}
-              hiddenRows={false}
-              mergeCells={true}
-              fillHandle={true}
-              multiColumnSorting={true}
-              dropdownMenu={true}
-              contextMenu={true}
-              filters={true}
-              licenseKey="non-commercial-and-evaluation"
-              formulas={formulas}
-              afterInit={handleAfterInit}
-              afterSelectionEnd={handleAfterSelectionEnd}
-              afterChange={handleAfterChange}
-              cells={renderCellProps}
-            />
+            <div suppressHydrationWarning className="h-full w-full">
+              {isMounted ? (
+                <HotTable
+                  ref={hotRef}
+                  className="ht-theme-main-dark"
+                  style={hotStyle}
+                  data={tableData}
+                  colHeaders={columnLabels}
+                  rowHeaders={true}
+                  colWidths={120}
+                  rowHeights={32}
+                  width="100%"
+                  height="100%"
+                  stretchH="all"
+                  manualColumnResize={true}
+                  manualRowResize={true}
+                  hiddenColumns={false}
+                  hiddenRows={false}
+                  mergeCells={true}
+                  fillHandle={true}
+                  multiColumnSorting={true}
+                  dropdownMenu={true}
+                  contextMenu={true}
+                  filters={true}
+                  licenseKey="non-commercial-and-evaluation"
+                  formulas={formulas}
+                  afterInit={handleAfterInit}
+                  afterSelectionEnd={handleAfterSelectionEnd}
+                  afterChange={handleAfterChange}
+                  afterCreateRow={handleAfterCreateOrRemove}
+                  afterCreateCol={handleAfterCreateOrRemove}
+                  afterRemoveRow={handleAfterCreateOrRemove}
+                  afterRemoveCol={handleAfterCreateOrRemove}
+                  cells={renderCellProps}
+                />
+              ) : null}
+            </div>
           </div>
         </div>
 

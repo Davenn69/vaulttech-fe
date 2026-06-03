@@ -305,8 +305,8 @@ export default function ReviewDocumentPage({
                       </div>
 
                       <p className="mt-3 text-sm leading-6 text-[#7a7d82]">
-                        Buka file ini di Word editor untuk melanjutkan revisi
-                        langsung dari dokumen yang sudah direview.
+                        Open this file in the Word editor to continue editing
+                        directly from the reviewed document.
                       </p>
 
                       <button

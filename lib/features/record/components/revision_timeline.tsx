@@ -3,14 +3,18 @@
 import {
   CalendarClock,
   Hash,
-  UserRound,
   Layers3,
   FileClock,
+  RotateCcw,
 } from "lucide-react";
 import { RevisionEntry } from "../types/record";
 
 type RevisionTimelineProps = {
   revisions: RevisionEntry[];
+  selectedRevisionId?: string;
+  onSelectRevision?: (revision: RevisionEntry) => void;
+  onRevertRevision?: (revision: RevisionEntry) => void;
+  revertingRevisionId?: string;
 };
 
 function formatDate(value: string) {
@@ -41,7 +45,13 @@ function formatSize(size?: number) {
   return `${currentSize.toFixed(currentSize >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
-export default function RevisionTimeline({ revisions }: RevisionTimelineProps) {
+export default function RevisionTimeline({
+  revisions,
+  selectedRevisionId,
+  onSelectRevision,
+  onRevertRevision,
+  revertingRevisionId,
+}: RevisionTimelineProps) {
   if (!revisions.length) {
     return (
       <div className="rounded-3xl border border-dashed border-[#2a2c2e] bg-[#121315] px-6 py-14 text-center">
@@ -62,7 +72,28 @@ export default function RevisionTimeline({ revisions }: RevisionTimelineProps) {
       {revisions.map((revision) => (
         <article
           key={revision.id}
+          role={onSelectRevision ? "button" : undefined}
+          tabIndex={onSelectRevision ? 0 : undefined}
+          onClick={() => onSelectRevision?.(revision)}
+          onKeyDown={(event) => {
+            if (!onSelectRevision) return;
+
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              onSelectRevision(revision);
+            }
+          }}
           className="rounded-3xl border border-[#222426] bg-[#121315] p-5 shadow-[0_12px_30px_rgba(0,0,0,0.18)]"
+          data-selected={selectedRevisionId === revision.id}
+          style={{
+            cursor: onSelectRevision ? "pointer" : "default",
+            borderColor:
+              selectedRevisionId === revision.id ? "#6c5ce7" : undefined,
+            boxShadow:
+              selectedRevisionId === revision.id
+                ? "0 0 0 1px rgba(108,92,231,0.35), 0 12px 30px rgba(0,0,0,0.18)"
+                : undefined,
+          }}
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
@@ -86,28 +117,35 @@ export default function RevisionTimeline({ revisions }: RevisionTimelineProps) {
             </div>
           </div>
 
-          <div className="mt-5 grid gap-3 border-t border-[#222426] pt-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-[#222426] bg-[#1a1b1d] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[#7a7d82]">
-                Created by
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#222426] bg-[#1a1b1d] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[#7a7d82]">
-                Change type
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-[#222426] bg-[#1a1b1d] px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.22em] text-[#7a7d82]">
-                Saved at
-              </p>
-              <p className="mt-2 text-sm font-medium text-[#e8e9ea]">
-                {formatDate(revision.createdAt)}
-              </p>
-            </div>
+          <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-[#222426] pt-4 text-xs text-[#7a7d82]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#2a2c2e] bg-[#1a1b1d] px-3 py-1">
+              <CalendarClock size={12} />
+              Saved at {formatDate(revision.createdAt)}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-[#2a2c2e] bg-[#1a1b1d] px-3 py-1">
+              <Layers3 size={12} />
+              {formatSize(revision.size)}
+            </span>
           </div>
+
+          {onRevertRevision ? (
+            <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-[#222426] pt-4">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onRevertRevision(revision);
+                }}
+                disabled={revertingRevisionId === revision.id}
+                className="inline-flex items-center gap-2 rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm font-medium text-[#e8e9ea] transition-colors hover:bg-[#252729] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <RotateCcw size={15} />
+                {revertingRevisionId === revision.id
+                  ? "Reverting..."
+                  : "Revert to this revision"}
+              </button>
+            </div>
+          ) : null}
         </article>
       ))}
     </div>

@@ -138,7 +138,7 @@ export function useFileList(onUploadSuccess?: () => void) {
           `/file/download/${id}`,
         );
 
-        const { downloadUrl, name } = res.data;
+        const { downloadUrl } = res.data;
 
         if (!downloadUrl) {
           throw new Error("Missing download url");
@@ -146,7 +146,7 @@ export function useFileList(onUploadSuccess?: () => void) {
 
         const link = document.createElement("a");
         link.href = downloadUrl;
-        link.download = name || "download";
+        link.download = "download";
         link.rel = "noreferrer";
         document.body.appendChild(link);
         link.click();

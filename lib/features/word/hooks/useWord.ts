@@ -24,7 +24,10 @@ type FetchCollaborationOptions = {
 };
 
 function createConnectionId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
 
@@ -49,26 +52,29 @@ export default function useWord(id?: string) {
     setCollaboration(data.collaboration);
   }, []);
 
-  const fetchContent = useCallback(async (fileId: string) => {
-    setLoading(true);
+  const fetchContent = useCallback(
+    async (fileId: string) => {
+      setLoading(true);
 
-    try {
-      const res = await api.get<ApiResponse<WordFileResponse>>(
-        `/word/${fileId}`,
-      );
-      applyFilePayload(res.data);
-      return res.data;
-    } catch (error) {
-      const message = axios.isAxiosError<ApiResponseError>(error)
-        ? error.response?.data.message
-        : "Failed to get content";
+      try {
+        const res = await api.get<ApiResponse<WordFileResponse>>(
+          `/word/${fileId}`,
+        );
+        applyFilePayload(res.data);
+        return res.data;
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to get content";
 
-      toast.error(message ?? "Failed to get content");
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  }, [applyFilePayload]);
+        toast.error(message ?? "Failed to get content");
+        throw error;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [applyFilePayload],
+  );
 
   const fetchCollaboration = useCallback(
     async (fileId: string, options?: FetchCollaborationOptions) => {
@@ -193,11 +199,11 @@ export default function useWord(id?: string) {
             current
               ? {
                   ...current,
-                  versionNumber: res.data.collaboration?.versionNumber,
+                  versionNumber: res.data.collaboration!.versionNumber,
                 }
               : {
                   document: nextContent,
-                  versionNumber: res.data.collaboration?.versionNumber ?? 1,
+                  versionNumber: res.data.collaboration!.versionNumber,
                 },
           );
         }

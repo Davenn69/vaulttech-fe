@@ -3,30 +3,18 @@ import { api, apiClient } from "@/lib/cores/utils/api";
 import axios from "axios";
 import { useCallback, useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
-import {
-  DownloadFileUrl,
-  FileModel,
-} from "@/lib/features/home/types/file";
+import { DownloadFileUrl, FileModel } from "@/lib/features/home/types/file";
 
 export default function usePdf(id?: string) {
   const [loading, setLoading] = useState(false);
   const [downloadUrl, setDownloadUrl] = useState<string>();
   const [fileName, setFileName] = useState<string>();
   const [pdfUrl, setPdfUrl] = useState<string>();
-  const objectUrlRef = useRef<string>();
-
-  const revokeObjectUrl = useCallback(() => {
-    if (!objectUrlRef.current) return;
-
-    URL.revokeObjectURL(objectUrlRef.current);
-    objectUrlRef.current = undefined;
-  }, []);
 
   const fetchPdf = useCallback(async (fileId: string) => {
     setLoading(true);
     setDownloadUrl(undefined);
     setFileName(undefined);
-    revokeObjectUrl();
     setPdfUrl(undefined);
 
     try {
@@ -36,7 +24,7 @@ export default function usePdf(id?: string) {
 
       const nextDownloadUrl = res.data.downloadUrl;
       setDownloadUrl(nextDownloadUrl);
-      setFileName(res.data.name);
+      setFileName(res.data.file);
 
       const pdfResponse = await apiClient.get(nextDownloadUrl, {
         responseType: "blob",
@@ -44,7 +32,6 @@ export default function usePdf(id?: string) {
       const blob = pdfResponse.data as Blob;
       const nextObjectUrl = URL.createObjectURL(blob);
 
-      objectUrlRef.current = nextObjectUrl;
       setPdfUrl(nextObjectUrl);
     } catch (error) {
       const message = axios.isAxiosError<ApiResponseError>(error)
@@ -55,7 +42,7 @@ export default function usePdf(id?: string) {
     } finally {
       setLoading(false);
     }
-  }, [revokeObjectUrl]);
+  }, []);
 
   const renameFile = useCallback(async (fileId: string, name: string) => {
     try {
@@ -85,12 +72,6 @@ export default function usePdf(id?: string) {
 
     void fetchPdf(id);
   }, [fetchPdf, id]);
-
-  useEffect(() => {
-    return () => {
-      revokeObjectUrl();
-    };
-  }, [revokeObjectUrl]);
 
   return {
     loading,

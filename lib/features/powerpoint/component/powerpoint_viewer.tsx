@@ -1,17 +1,23 @@
 "use client";
 
 import PageWrapper from "@/lib/cores/components/page_wrapper";
-import { Download, ExternalLink, RefreshCw, Presentation } from "lucide-react";
+import {
+  ArrowLeft,
+  Download,
+  ExternalLink,
+  Presentation,
+  RefreshCw,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
 import usePowerpoint from "../hooks/usePowerpoint";
 import { PowerpointViewerProps } from "../types/powerpoint";
 
 export default function PowerpointViewer({ id }: PowerpointViewerProps) {
+  const router = useRouter();
   const { loading, fileName, downloadUrl, viewerUrl, fetchPowerpoint } =
     usePowerpoint(id);
 
   const activeName = fileName ?? "PowerPoint presentation";
-
-  console.log(fileName);
 
   return (
     <PageWrapper isLoading={loading} className="min-h-dvh">
@@ -19,14 +25,24 @@ export default function PowerpointViewer({ id }: PowerpointViewerProps) {
         <section className="flex min-h-0 min-w-0 flex-1 flex-col">
           <header className="border-b border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0))] px-5 py-4">
             <div className="mx-auto flex w-full max-w-[1400px] flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
+              <div className="flex items-start gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#3c4b63] bg-[#142033] text-[#8fb4ff] shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
                   <Presentation size={20} />
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xs uppercase tracking-[0.24em] text-white/45">
-                    PowerPoint viewer
-                  </p>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => router.back()}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-[#2a2c2e] bg-[#1a1b1d] px-3 py-1.5 text-xs font-medium text-[#e8e9ea] transition-colors hover:bg-[#252729]"
+                    >
+                      <ArrowLeft size={14} />
+                      Back
+                    </button>
+                    <p className="text-xs uppercase tracking-[0.24em] text-white/45">
+                      PowerPoint viewer
+                    </p>
+                  </div>
                   <h1 className="truncate text-xl font-semibold text-white">
                     {activeName}
                   </h1>

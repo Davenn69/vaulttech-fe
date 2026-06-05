@@ -95,11 +95,12 @@ function referenceToPosition(reference: string) {
 }
 
 function normalizeApiRows(workbook: ExcelApiPayload) {
+  if (!Array.isArray(workbook.content)) return;
   const cells = workbook.content.flatMap((row) => row.filter(Boolean));
 
   const dimensions = cells.reduce(
     (acc, cell) => {
-      const { row, col } = referenceToPosition(cell.reference);
+      const { row, col } = referenceToPosition(cell!.reference);
       return {
         rows: Math.max(acc.rows, row + 1),
         cols: Math.max(acc.cols, col + 1),

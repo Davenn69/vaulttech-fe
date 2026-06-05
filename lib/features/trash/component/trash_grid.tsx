@@ -104,8 +104,8 @@ export default function TrashGrid() {
                     isFavourite={file.isFavourite}
                     name={file.name}
                     extension={file.extension}
-                    statusLabel={file.categoryName ?? undefined}
-                    statusColor={file.categoryColor ?? undefined}
+                    statusLabel={file.category?.name ?? undefined}
+                    statusColor={file.category?.color ?? undefined}
                     isDisabled
                     menuItems={[
                       {

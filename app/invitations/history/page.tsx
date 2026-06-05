@@ -42,7 +42,7 @@ export default function InvitationHistoryPage() {
             ) : (
               processedInvitations.map((item) => (
                 <article
-                  key={item.id}
+                  key={item.invitation.id}
                   className="rounded-2xl border border-[#2a2c2e] bg-[#111213] p-5"
                 >
                   <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -50,51 +50,31 @@ export default function InvitationHistoryPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span
                           className={`rounded-full px-3 py-1 text-xs uppercase tracking-wide ${
-                            item.status === "accepted"
+                            item.invitation.status === "accept"
                               ? "bg-[#1f3026] text-[#8be3a3]"
                               : "bg-[#31231f] text-[#ffb199]"
                           }`}
                         >
-                          {item.status}
-                        </span>
-                        <span className="rounded-full border border-[#2a2c2e] px-3 py-1 text-xs text-[#7a7d82]">
-                          {item.role}
+                          {item.invitation.status}
                         </span>
                       </div>
-
-                      <h3 className="text-base font-semibold text-[#f6f7f8]">
-                        {item.teamName}
-                      </h3>
-                      <p className="text-sm text-[#7a7d82]">
-                        {item.repositoryName}
-                      </p>
-                    </div>
-
-                    <div className="text-sm text-[#7a7d82]">
-                      <div>Processed by {item.inviterName}</div>
-                      <div>{item.decidedAt ? formatDate(item.decidedAt) : "-"}</div>
                     </div>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => router.push(PageRoutes.repositoryInvitationDetail(item.id))}
+                      onClick={() =>
+                        router.push(
+                          PageRoutes.repositoryInvitationDetail(
+                            item.invitation.id,
+                          ),
+                        )
+                      }
                       className="inline-flex items-center gap-2 rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm text-[#e8e9ea] transition-colors hover:bg-[#252729]"
                     >
                       Review
                     </button>
-                    {item.status === "accepted" ? (
-                      <span className="inline-flex items-center gap-2 rounded-xl bg-[#1f3026] px-4 py-2 text-sm text-[#8be3a3]">
-                        <CheckCircle2 size={15} />
-                        Accepted
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-2 rounded-xl bg-[#31231f] px-4 py-2 text-sm text-[#ffb199]">
-                        <XCircle size={15} />
-                        Declined
-                      </span>
-                    )}
                   </div>
                 </article>
               ))

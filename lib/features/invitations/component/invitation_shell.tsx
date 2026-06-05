@@ -19,7 +19,7 @@ export default function InvitationShell({ children }: InvitationShellProps) {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => router.push(PageRoutes.repository)}
+              onClick={() => router.back()}
               className="inline-flex items-center gap-2 rounded-xl border border-[#2a2c2e] bg-[#1a1b1d] px-4 py-2 text-sm text-[#e8e9ea] transition-colors hover:bg-[#252729]"
             >
               <ArrowLeft size={15} />

@@ -22,7 +22,7 @@ export function useSearch() {
 
     try {
       const res = await api.get<ApiResponse<SearchItem[]>>("/search", {
-        query: trimmedKeyword,
+        keyword: trimmedKeyword,
       });
 
       setResults(res.data ?? []);

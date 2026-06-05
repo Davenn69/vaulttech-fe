@@ -26,7 +26,6 @@ export default function UploadFile() {
           setProgress(percent);
         },
       });
-      alert("Upload selesai!");
     } catch (err) {
       console.error(err);
     } finally {

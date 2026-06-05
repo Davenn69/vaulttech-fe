@@ -19,11 +19,7 @@ import { useLoginFunction } from "../../../lib/features/login/viewmodel/loginVM"
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "At least one uppercase letter")
-    .regex(/[0-9]/, "At least one number"),
+  password: z.string(),
 });
 
 export default function LoginPage() {
@@ -39,7 +35,10 @@ export default function LoginPage() {
   });
 
   return (
-    <PageWrapper isLoading={isLoading} className="min-h-dvh items-center px-4 py-8 sm:px-6">
+    <PageWrapper
+      isLoading={isLoading}
+      className="min-h-dvh items-center px-4 py-8 sm:px-6"
+    >
       <div className="w-full max-w-md">
         <Card className="border-white/10 bg-[#0f1726]/85 shadow-2xl shadow-black/30 backdrop-blur-xl">
           <CardHeader className="space-y-2 p-8 pb-4">

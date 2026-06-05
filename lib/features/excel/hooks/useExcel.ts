@@ -14,6 +14,7 @@ export function useExcel(id?: string) {
   const [saving, setSaving] = useState(false);
   const [content, setContent] = useState<ExcelWorkbookContent>();
   const [fileName, setFileName] = useState<string>();
+  const [sheetName, setSheetName] = useState<string>("Sheet 1");
 
   const fetchContent = useCallback(async (fileId: string) => {
     setLoading(true);
@@ -28,6 +29,7 @@ export function useExcel(id?: string) {
 
       setContent(nextContent);
       setFileName(workbook.file?.name);
+      setSheetName(workbook.sheetName ?? "Sheet 1");
       return nextContent;
     } catch (error) {
       const message = axios.isAxiosError<ApiResponseError>(error)
@@ -46,7 +48,6 @@ export function useExcel(id?: string) {
       setSaving(true);
 
       try {
-        console.log(nextContent);
         const res = await api.post<ApiResponse<ExcelApiPayload>>(
           "/excel/save",
           {
@@ -56,10 +57,10 @@ export function useExcel(id?: string) {
         );
 
         const workbook = res.data;
-        const normalized = apiWorkbookToEditorContent(workbook) ?? nextContent;
-        setContent(normalized);
+        setContent(nextContent);
         setFileName(workbook.file?.name);
-        return normalized;
+        setSheetName(workbook.sheetName ?? "Sheet 1");
+        return nextContent;
       } catch (error) {
         const message = axios.isAxiosError<ApiResponseError>(error)
           ? error.response?.data.message
@@ -108,6 +109,7 @@ export function useExcel(id?: string) {
     saving,
     content,
     fileName,
+    sheetName,
     fetchContent,
     saveContent,
     renameFile,

@@ -25,8 +25,6 @@ import {
   AlignJustify,
   Rows3,
   Merge,
-  Plus,
-  Minus,
   PaintBucket,
   Type,
   Eraser,
@@ -35,7 +33,7 @@ import {
   Save,
   ArrowLeft,
 } from "lucide-react";
-import { ExcelCellValue, ExcelWorkbookContent } from "../types/excel";
+import { ExcelCellMeta, ExcelCellValue, ExcelWorkbookContent } from "../types/excel";
 import { useRouter } from "next/navigation";
 
 type ExcelEditorProps = {
@@ -51,6 +49,18 @@ type SelectionBounds = {
   toCol: number;
   highlightRow: number;
   highlightCol: number;
+};
+
+type StyleCellMeta = {
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  textAlign?: AlignMode;
+  verticalAlign?: VerticalMode;
+  textColor?: string;
+  backgroundColor?: string;
+  fontSize?: number;
+  fontFamily?: string;
 };
 
 const DEFAULT_ROWS = 40;
@@ -188,6 +198,10 @@ function isCustomMetaDefined(meta: ExcelCellMetaEntry) {
   return FORMATTING_KEYS.some((key) => meta[key] !== undefined);
 }
 
+function getCellMetaKey(row: number, col: number) {
+  return `${row}:${col}`;
+}
+
 export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const router = useRouter();
   const hotRef = useRef<HotTableRef | null>(null);
@@ -200,6 +214,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     highlightRow: 0,
     highlightCol: 0,
   });
+  const cellStyleMetaRef = useRef<Map<string, StyleCellMeta>>(new Map());
   const [selectedAddress, setSelectedAddress] = useState("A1");
   const [formulaInput, setFormulaInput] = useState("Revenue");
   const [selectedValue, setSelectedValue] = useState<string>("Revenue");
@@ -213,8 +228,15 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     backgroundColor?: string;
     fontSize?: number;
   }>({});
-  const { loading, saving, content, saveContent, fileName, renameFile } =
-    useExcel(workbookId);
+  const {
+    loading,
+    saving,
+    content,
+    saveContent,
+    fileName,
+    sheetName,
+    renameFile,
+  } = useExcel(workbookId);
   const [documentName, setDocumentName] = useState("Spreadsheet");
   const [isEditingName, setIsEditingName] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -234,7 +256,16 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     [sheetDimensions.cols],
   );
   const hotStyle = useMemo(() => ({ width: "100%", height: "100%" }), []);
-  const formulas = useMemo(() => ({ engine: HyperFormula }), []);
+  const formulas = useMemo(
+    () => ({
+      engine: {
+        hyperformula: HyperFormula,
+        licenseKey: "gpl-v3",
+      },
+      sheetName,
+    }),
+    [sheetName],
+  );
 
   useEffect(() => {
     setIsMounted(true);
@@ -338,6 +369,8 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       }));
 
       hot.batch(() => {
+        cellStyleMetaRef.current.clear();
+
         FORMATTING_KEYS.forEach((key) => {
           for (let row = 0; row < hot.countRows(); row += 1) {
             for (let col = 0; col < hot.countCols(); col += 1) {
@@ -346,7 +379,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
           }
         });
 
-        workbook.cellMeta?.forEach((meta: any) => {
+        workbook.cellMeta?.forEach((meta: ExcelCellMeta) => {
           if (!isCustomMetaDefined(meta)) return;
 
           const {
@@ -379,6 +412,18 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
             hot.setCellMeta(row, col, "fontSize", fontSize);
           if (fontFamily !== undefined)
             hot.setCellMeta(row, col, "fontFamily", fontFamily);
+
+          updateStoredCellMeta(row, col, {
+            bold,
+            italic,
+            underline,
+            textAlign,
+            verticalAlign,
+            textColor,
+            backgroundColor,
+            fontSize,
+            fontFamily,
+          });
         });
       });
 
@@ -445,6 +490,27 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
     cellProperties.renderer = spreadsheetRenderer;
 
+    const storedMeta = cellStyleMetaRef.current.get(getCellMetaKey(row, col));
+    if (storedMeta) {
+      if (storedMeta.bold !== undefined) cellProperties.bold = storedMeta.bold;
+      if (storedMeta.italic !== undefined)
+        cellProperties.italic = storedMeta.italic;
+      if (storedMeta.underline !== undefined)
+        cellProperties.underline = storedMeta.underline;
+      if (storedMeta.textAlign !== undefined)
+        cellProperties.textAlign = storedMeta.textAlign;
+      if (storedMeta.verticalAlign !== undefined)
+        cellProperties.verticalAlign = storedMeta.verticalAlign;
+      if (storedMeta.textColor !== undefined)
+        cellProperties.textColor = storedMeta.textColor;
+      if (storedMeta.backgroundColor !== undefined)
+        cellProperties.backgroundColor = storedMeta.backgroundColor;
+      if (storedMeta.fontSize !== undefined)
+        cellProperties.fontSize = storedMeta.fontSize;
+      if (storedMeta.fontFamily !== undefined)
+        cellProperties.fontFamily = storedMeta.fontFamily;
+    }
+
     if (row === 0 && col === 0) {
       cellProperties.bold = true;
       cellProperties.fontSize = 16;
@@ -489,6 +555,20 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     updateSelectedState(hot);
   };
 
+  const updateStoredCellMeta = (
+    row: number,
+    col: number,
+    meta: Partial<StyleCellMeta>,
+  ) => {
+    const key = getCellMetaKey(row, col);
+    const currentMeta = cellStyleMetaRef.current.get(key) ?? {};
+    cellStyleMetaRef.current.set(key, { ...currentMeta, ...meta });
+  };
+
+  const clearStoredCellMeta = (row: number, col: number) => {
+    cellStyleMetaRef.current.delete(getCellMetaKey(row, col));
+  };
+
   const setBooleanStyle = (key: "bold" | "italic" | "underline") => {
     const hot = hotRef.current?.hotInstance;
     if (!hot) return;
@@ -502,12 +582,14 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
     applyToSelection((row, col) => {
       hot.setCellMeta(row, col, key, shouldEnable);
+      updateStoredCellMeta(row, col, { [key]: shouldEnable } as Partial<StyleCellMeta>);
     });
   };
 
   const setAlign = (align: AlignMode) => {
     applyToSelection((row, col) => {
       hotRef.current?.hotInstance?.setCellMeta(row, col, "textAlign", align);
+      updateStoredCellMeta(row, col, { textAlign: align });
     });
   };
 
@@ -519,18 +601,21 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         "verticalAlign",
         align,
       );
+      updateStoredCellMeta(row, col, { verticalAlign: align });
     });
   };
 
   const setColor = (key: "textColor" | "backgroundColor", value: string) => {
     applyToSelection((row, col) => {
       hotRef.current?.hotInstance?.setCellMeta(row, col, key, value);
+      updateStoredCellMeta(row, col, { [key]: value } as Partial<StyleCellMeta>);
     });
   };
 
   const setFontSize = (value: number) => {
     applyToSelection((row, col) => {
       hotRef.current?.hotInstance?.setCellMeta(row, col, "fontSize", value);
+      updateStoredCellMeta(row, col, { fontSize: value });
     });
   };
 
@@ -550,6 +635,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         "fontSize",
         "fontFamily",
       ].forEach((key) => hot.removeCellMeta(row, col, key));
+      clearStoredCellMeta(row, col);
     });
   };
 
@@ -575,13 +661,22 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     if (!bounds) return;
     if (bounds.highlightRow < 0 || bounds.highlightCol < 0) return;
 
+    const nextFormula = formulaInput.trim();
+    if (!nextFormula) return;
+
     hot.setDataAtCell(
       bounds.highlightRow,
       bounds.highlightCol,
-      formulaInput,
-      "excel-editor",
+      nextFormula,
+      "edit",
     );
-    hot.render();
+    (
+      hot.getPlugin("formulas") as
+        | (Handsontable.plugins.Formulas & {
+            engine?: { rebuildAndRecalculate?: () => void };
+          })
+        | null
+    )?.engine?.rebuildAndRecalculate?.();
     updateSelectedState(hot);
   };
 
@@ -649,10 +744,23 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       }))
       .filter(isCustomMetaDefined);
 
+    const persistedCellMeta = Array.from(cellStyleMetaRef.current.entries()).map(
+      ([key, meta]) => {
+        const [row, col] = key.split(":").map(Number);
+        return {
+          row,
+          col,
+          ...meta,
+        };
+      },
+    );
+
+    const nextCellMeta = persistedCellMeta.length > 0 ? persistedCellMeta : cellMeta;
+
     try {
       await saveContent(workbookId, {
         data: hot.getSourceData() as Array<Array<ExcelCellValue>>,
-        cellMeta,
+        cellMeta: nextCellMeta,
       });
       toast.success("Workbook saved");
     } catch {

@@ -30,6 +30,12 @@ export type ExcelApiCell = {
   fontId: number | null;
   numFmtId: number | null;
   underline?: boolean;
+  textColor?: string;
+  backgroundColor?: string;
+  fontSize?: number;
+  fontFamily?: string;
+  textAlign?: "left" | "center" | "right" | "justify";
+  verticalAlign?: "top" | "middle" | "bottom";
 };
 
 export type ExcelApiRow = Array<ExcelApiCell | null>;
@@ -129,6 +135,12 @@ function normalizeApiRows(workbook: ExcelApiPayload) {
       if (cell.bold) meta.bold = true;
       if (cell.italic) meta.italic = true;
       if (cell.underline) meta.underline = true;
+      if (cell.textColor) meta.textColor = cell.textColor;
+      if (cell.backgroundColor) meta.backgroundColor = cell.backgroundColor;
+      if (cell.fontSize) meta.fontSize = cell.fontSize;
+      if (cell.fontFamily) meta.fontFamily = cell.fontFamily;
+      if (cell.textAlign) meta.textAlign = cell.textAlign;
+      if (cell.verticalAlign) meta.verticalAlign = cell.verticalAlign;
       cellMeta.push(meta);
     });
   });

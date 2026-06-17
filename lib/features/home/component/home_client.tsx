@@ -29,6 +29,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { folderStorage } from "@/lib/cores/utils/local";
 
 function getActiveNav(pathname: string) {
   switch (pathname) {
@@ -77,7 +78,7 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
 
   const upload = useMultiFileUpload(
     "/file/uploadFile",
-    folderId,
+    folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
     notifyUploadSuccess,
   );
   const { renameFile, fetchFiles, createWordFile, createExcelFile } =
@@ -178,8 +179,16 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
           onNavigate={setActiveNav}
           onUploadFiles={upload.addAndUploadFiles}
           onCreateFolder={() => setShowCreateFolder(true)}
-          onCreateWordFile={() => createWordFile(folderId)}
-          onCreateExcelFile={() => createExcelFile(folderId)}
+          onCreateWordFile={() =>
+            createWordFile(
+              folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
+            )
+          }
+          onCreateExcelFile={() =>
+            createExcelFile(
+              folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
+            )
+          }
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <Topbar
@@ -203,7 +212,10 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
         open={showCreateFolder}
         onClose={() => setShowCreateFolder(false)}
         onSubmit={async function (folderName: string): Promise<void> {
-          await uploadFolder(folderId, folderName);
+          await uploadFolder(
+            folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
+            folderName,
+          );
           setShowCreateFolder(false);
         }}
       />

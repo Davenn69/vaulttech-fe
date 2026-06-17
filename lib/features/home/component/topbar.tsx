@@ -5,6 +5,7 @@ import {
   Folder,
   Download,
   Loader2,
+  Menu,
   Search,
   User,
   LogOut,
@@ -20,9 +21,10 @@ import { openFile } from "@/lib/cores/utils/fileUtils";
 
 type TopbarType = {
   onUploadToggle: () => void;
+  onToggleSidebar: () => void;
 };
 
-export default function Topbar({ onUploadToggle }: TopbarType) {
+export default function Topbar({ onUploadToggle, onToggleSidebar }: TopbarType) {
   const router = useRouter();
   const { query, setQuery, results, loading } = useSearch();
   const hasQuery = query.trim().length > 0;
@@ -72,6 +74,19 @@ export default function Topbar({ onUploadToggle }: TopbarType) {
 
   return (
     <header className="relative flex items-center gap-3 border-b border-[#222426] bg-[#111213] px-6 py-4">
+      <button
+        onClick={onToggleSidebar}
+        aria-label="Toggle sidebar"
+        title="Toggle sidebar"
+        className="
+          flex h-9 w-9 shrink-0 items-center justify-center rounded-xl
+          text-[#7a7d82] transition-all duration-150
+          hover:bg-[#252729] hover:text-[#e8e9ea]
+        "
+      >
+        <Menu size={18} />
+      </button>
+
       {/* Search */}
       <div ref={searchRef} className="relative flex flex-1 items-center">
         <Search

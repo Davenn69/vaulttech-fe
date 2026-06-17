@@ -89,6 +89,7 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   const [activeNav, setActiveNav] = useState<string>(() =>
     getActiveNav(pathname),
   );
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [isUploadPanelOpen, setIsUploadPanelOpen] = useState(false);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const hasActiveUpload = upload.files.some(
@@ -173,28 +174,31 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex relative">
       <div className="flex h-screen w-full overflow-hidden bg-[#111213] text-[#e8e9ea]">
-        <Sidebar
-          navItems={navItems}
-          activeItem={activeNav}
-          onNavigate={setActiveNav}
-          onUploadFiles={upload.addAndUploadFiles}
-          onCreateFolder={() => setShowCreateFolder(true)}
-          onCreateWordFile={() =>
-            createWordFile(
-              folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
-            )
-          }
-          onCreateExcelFile={() =>
-            createExcelFile(
-              folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
-            )
-          }
-        />
+        {isSidebarVisible && (
+          <Sidebar
+            navItems={navItems}
+            activeItem={activeNav}
+            onNavigate={setActiveNav}
+            onUploadFiles={upload.addAndUploadFiles}
+            onCreateFolder={() => setShowCreateFolder(true)}
+            onCreateWordFile={() =>
+              createWordFile(
+                folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
+              )
+            }
+            onCreateExcelFile={() =>
+              createExcelFile(
+                folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
+              )
+            }
+          />
+        )}
         <div className="flex flex-col flex-1 overflow-hidden">
           <Topbar
             onUploadToggle={() =>
               setIsUploadPanelOpen((prevState) => !prevState)
             }
+            onToggleSidebar={() => setIsSidebarVisible((prev) => !prev)}
           />
           {children}
         </div>

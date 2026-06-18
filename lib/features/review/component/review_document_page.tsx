@@ -23,6 +23,7 @@ import ReviewDeclineModal from "./review_decline_modal";
 import ReviewDocumentPreview from "./review_document_preview";
 import { useReviewComments } from "../hooks/useReviewComments";
 import { useReviewDocument } from "../hooks/useReviewDocument";
+import { CommentModel } from "../types/review_file";
 
 type ReviewDocumentPageProps = {
   documentSupervisorId: string;
@@ -41,52 +42,21 @@ function SummaryCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function CommentCard({ entry }: { entry: unknown }) {
-  const record =
-    entry && typeof entry === "object"
-      ? (entry as Record<string, unknown>)
-      : undefined;
-
-  const supervisorNameSource =
-    record?.supervisorName ??
-    record?.createdBy ??
-    record?.documentSupervisorId ??
-    record?.supervisorId ??
-    record?.name ??
-    record?.email ??
-    record?.id;
-  const createdAtSource = record?.createdAt;
-  const commentSource = record?.comment ?? record?.message ?? entry;
-
-  const supervisorName =
-    typeof supervisorNameSource === "string" ||
-    typeof supervisorNameSource === "number" ||
-    typeof supervisorNameSource === "boolean"
-      ? String(supervisorNameSource)
-      : "Supervisor";
-  const createdAt =
-    typeof createdAtSource === "string" ||
-    typeof createdAtSource === "number" ||
-    typeof createdAtSource === "boolean"
-      ? String(createdAtSource)
-      : "-";
-  const commentText =
-    typeof commentSource === "string" ||
-    typeof commentSource === "number" ||
-    typeof commentSource === "boolean"
-      ? String(commentSource)
-      : "-";
-
+function CommentCard({ entry }: { entry: CommentModel }) {
   return (
     <article className="rounded-2xl border border-[#2a2c2e] bg-[#111213] p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <p className="text-sm font-medium text-[#f6f7f8]">{supervisorName}</p>
-          <p className="mt-1 text-xs text-[#7a7d82]">{formatDate(createdAt)}</p>
+          <p className="text-sm font-medium text-[#f6f7f8]">
+            {entry.creator.username}
+          </p>
+          <p className="mt-1 text-xs text-[#7a7d82]">
+            {formatDate(entry.createdAt)}
+          </p>
         </div>
       </div>
       <p className="mt-3 whitespace-pre-wrap text-sm leading-6 text-[#d7d9dd]">
-        {commentText}
+        {entry.status === "approved" ? "Approved" : entry.comment}
       </p>
     </article>
   );
@@ -270,13 +240,6 @@ export default function ReviewDocumentPage({
                       Review summary
                     </p>
                     <div className="mt-3 space-y-3">
-                      <div className="rounded-2xl border border-[#2a2c2e] bg-[#111213] px-4 py-3"></div>
-                      <div className="rounded-2xl border border-[#2a2c2e] bg-[#111213] px-4 py-3">
-                        <p className="text-xs text-[#7a7d82]">Path</p>
-                        <p className="mt-1 break-all text-sm font-medium text-[#e8e9ea]">
-                          {record?.file.path ?? "-"}
-                        </p>
-                      </div>
                       <div className="rounded-2xl border border-[#2a2c2e] bg-[#111213] px-4 py-3">
                         <p className="text-xs text-[#7a7d82]">
                           Reviewed through
@@ -393,11 +356,8 @@ export default function ReviewDocumentPage({
                         </div>
                       ) : (
                         <div className="mt-4 space-y-3">
-                          {comments.map((comment, index) => (
-                            <CommentCard
-                              key={`${comment.id ?? "comment"}-${comment.createdAt ?? "unknown"}-${index}`}
-                              entry={comment}
-                            />
+                          {comments.map((comment) => (
+                            <CommentCard key={comment.id} entry={comment} />
                           ))}
                         </div>
                       )}

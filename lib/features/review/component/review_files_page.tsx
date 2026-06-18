@@ -346,7 +346,7 @@ export default function ReviewFilesPage() {
                 ) : (
                   reviewableFiles.map((item) => (
                     <ReviewFileCard
-                      key={item.file.id}
+                      key={item.invitation.id}
                       item={item}
                       onOpen={() => {
                         router.push(
@@ -383,7 +383,7 @@ export default function ReviewFilesPage() {
                 ) : (
                   reviewedFiles.map((item) => (
                     <ReviewedFileCard
-                      key={item.file.id}
+                      key={item.invitation.id}
                       item={item}
                       onOpen={() => {
                         router.push(

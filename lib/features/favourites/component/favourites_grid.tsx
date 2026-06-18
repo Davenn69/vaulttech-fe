@@ -21,6 +21,7 @@ export default function FavouriteGrid() {
   const [selectedFileForCategory, setSelectedFileForCategory] = useState<{
     id: string;
     name: string;
+    categoryName?: string;
   } | null>(null);
   const {
     loading,
@@ -136,6 +137,7 @@ export default function FavouriteGrid() {
                           setSelectedFileForCategory({
                             id: file.id,
                             name: file.name,
+                            categoryName: file.category?.name,
                           });
                         },
                       },
@@ -163,6 +165,7 @@ export default function FavouriteGrid() {
           open={selectedFileForCategory !== null}
           fileId={selectedFileForCategory?.id ?? ""}
           fileName={selectedFileForCategory?.name ?? ""}
+          currentCategoryName={selectedFileForCategory?.categoryName}
           onClose={() => setSelectedFileForCategory(null)}
           onSuccess={notifyUploadSuccess}
         />

@@ -8,6 +8,7 @@ type CategorySelectMenuProps = {
   open: boolean;
   fileId: string;
   fileName: string;
+  currentCategoryName?: string;
   onClose: () => void;
   onSuccess?: () => void;
 };
@@ -16,6 +17,7 @@ export default function CategorySelectMenu({
   open,
   fileId,
   fileName,
+  currentCategoryName,
   onClose,
   onSuccess,
 }: CategorySelectMenuProps) {
@@ -24,6 +26,7 @@ export default function CategorySelectMenu({
     loading,
     fetchCategories,
     assignFileCategory,
+    removeCategoryFromFile,
     createCategory,
   } = useCategories(onSuccess);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -108,6 +111,31 @@ export default function CategorySelectMenu({
         </div>
 
         <div className="space-y-4 px-5 py-4">
+          <div className="rounded-2xl border border-[#2a2c2e] bg-[#1b1d20] p-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#7a7d82]">
+                  Current category
+                </p>
+                <p className="mt-1 truncate text-sm font-medium text-[#f4f5f6]">
+                  {currentCategoryName ?? "No category assigned"}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await removeCategoryFromFile(fileId);
+                  onClose();
+                }}
+                disabled={loading || !currentCategoryName}
+                className="rounded-xl border border-[#3a2a2a] bg-[rgba(255,107,107,0.08)] px-3 py-2 text-sm font-medium text-[#ff8f8f] transition-colors hover:bg-[rgba(255,107,107,0.12)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Remove category
+              </button>
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-[#2a2c2e] bg-[#1b1d20] p-3">
             <div className="flex items-center gap-3">
               <div

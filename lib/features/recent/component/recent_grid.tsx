@@ -45,6 +45,7 @@ export default function RecentGrid() {
   const [selectedFileForCategory, setSelectedFileForCategory] = useState<{
     id: string;
     name: string;
+    categoryName?: string;
   } | null>(null);
   const { openUpdateFolderModal, openUpdateFileModal } = useFolderModal();
   const { refreshTick, notifyUploadSuccess } = useUploadRefresh();
@@ -178,11 +179,12 @@ export default function RecentGrid() {
                             label: "Set Category",
                             danger: false,
                             onTap: () => {
-                              setSelectedFileForCategory({
-                                id: item.id,
-                                name: item.name,
-                              });
-                            },
+                            setSelectedFileForCategory({
+                              id: item.id,
+                              name: item.name,
+                              categoryName: item.category?.name,
+                            });
+                          },
                           },
                           {
                             label: "History",
@@ -210,6 +212,7 @@ export default function RecentGrid() {
           open={selectedFileForCategory !== null}
           fileId={selectedFileForCategory?.id ?? ""}
           fileName={selectedFileForCategory?.name ?? ""}
+          currentCategoryName={selectedFileForCategory?.categoryName}
           onClose={() => setSelectedFileForCategory(null)}
           onSuccess={notifyUploadSuccess}
         />

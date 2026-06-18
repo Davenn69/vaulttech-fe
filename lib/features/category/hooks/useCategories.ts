@@ -59,6 +59,33 @@ export function useCategories(onSuccess?: () => void) {
     [onSuccess],
   );
 
+  const removeCategoryFromFile = useCallback(
+    async (id: string) => {
+      setLoading(true);
+
+      try {
+        const res = await api.patch<ApiResponse<unknown>>(
+          "/file/removeCategory",
+          {
+            id,
+          },
+        );
+
+        toast.success(res.message);
+        onSuccess?.();
+      } catch (error) {
+        const message = axios.isAxiosError<ApiResponseError>(error)
+          ? error.response?.data.message
+          : "Failed to remove file category";
+
+        toast.error(message ?? "Failed to remove file category");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onSuccess],
+  );
+
   const createCategory = useCallback(
     async (payload: { name: string; color: string }) => {
       setLoading(true);
@@ -113,7 +140,7 @@ export function useCategories(onSuccess?: () => void) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [fetchCategories, onSuccess]);
 
   return {
     categories,
@@ -121,6 +148,7 @@ export function useCategories(onSuccess?: () => void) {
     files,
     fetchCategories,
     assignFileCategory,
+    removeCategoryFromFile,
     createCategory,
     fetchFilesByCategories,
   };

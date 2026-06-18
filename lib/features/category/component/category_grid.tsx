@@ -19,6 +19,7 @@ export default function CategoryGrid() {
   const [selectedFileForCategory, setSelectedFileForCategory] = useState<{
     id: string;
     name: string;
+    categoryName?: string;
   } | null>(null);
   const {
     deleteFile,
@@ -91,12 +92,13 @@ export default function CategoryGrid() {
                         {
                           label: "Set Category",
                           danger: false,
-                          onTap: () => {
-                            setSelectedFileForCategory({
-                              id: item.id,
-                              name: item.name,
-                            });
-                          },
+                        onTap: () => {
+                          setSelectedFileForCategory({
+                            id: item.id,
+                            name: item.name,
+                            categoryName: item.category?.name,
+                          });
+                        },
                         },
                         {
                           label: "History",
@@ -123,6 +125,7 @@ export default function CategoryGrid() {
           open={selectedFileForCategory !== null}
           fileId={selectedFileForCategory?.id ?? ""}
           fileName={selectedFileForCategory?.name ?? ""}
+          currentCategoryName={selectedFileForCategory?.categoryName}
           onClose={() => setSelectedFileForCategory(null)}
           onSuccess={notifyUploadSuccess}
         />

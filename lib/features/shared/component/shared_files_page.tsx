@@ -24,6 +24,7 @@ export default function SharedFilesPage() {
   const [selectedFileForCategory, setSelectedFileForCategory] = useState<{
     id: string;
     name: string;
+    categoryName?: string;
   } | null>(null);
 
   return (
@@ -82,6 +83,7 @@ export default function SharedFilesPage() {
                     setSelectedFileForCategory({
                       id: file.id,
                       name: file.name,
+                      categoryName: file.category?.name,
                     });
                   },
                 },
@@ -94,6 +96,7 @@ export default function SharedFilesPage() {
           open={selectedFileForCategory !== null}
           fileId={selectedFileForCategory?.id ?? ""}
           fileName={selectedFileForCategory?.name ?? ""}
+          currentCategoryName={selectedFileForCategory?.categoryName}
           onClose={() => setSelectedFileForCategory(null)}
           onSuccess={() => void fetchSharedFiles()}
         />

@@ -18,7 +18,6 @@ import {
   Undo2,
   Redo2,
   Trash2,
-  Sigma,
   AlignLeft,
   AlignCenter,
   AlignRight,

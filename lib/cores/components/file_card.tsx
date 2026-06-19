@@ -53,6 +53,11 @@ function getFileIcon(extension: string) {
   );
 }
 
+function isWordFileExtension(extension: string) {
+  const normalizedExtension = extension.toLowerCase().replaceAll(".", "");
+  return ["doc", "docx", "rtf"].includes(normalizedExtension);
+}
+
 export default function FileCard({
   id,
   name,
@@ -85,6 +90,7 @@ export default function FileCard({
     refreshReviewers,
     sendInvite,
   } = useReviewers(inviteOpen);
+  const canInviteReviewers = allowInviteReviewers && isWordFileExtension(extension);
 
   const updateMenuPosition = useCallback(() => {
     const buttonEl = buttonRef.current;
@@ -94,7 +100,7 @@ export default function FileCard({
     const menuWidth = 160;
     const menuItemCount =
       menuItems.length +
-      (allowInviteReviewers ? 1 : 0) +
+      (canInviteReviewers ? 1 : 0) +
       (allowShareFile && id ? 1 : 0);
     const menuHeight = Math.min(
       menuItemCount * 40 + 8,
@@ -121,7 +127,7 @@ export default function FileCard({
     }
 
     setMenuPosition({ top, left });
-  }, [allowInviteReviewers, allowShareFile, id, menuItems.length]);
+  }, [allowShareFile, canInviteReviewers, id, menuItems.length]);
 
   useIsomorphicLayoutEffect(() => {
     if (!menuOpen || !mounted) return;
@@ -345,7 +351,7 @@ export default function FileCard({
                 {label}
               </button>
             ))}
-            {allowInviteReviewers && (
+            {canInviteReviewers && (
               <button
                 type="button"
                 onClick={() => {

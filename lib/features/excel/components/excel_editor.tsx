@@ -33,7 +33,11 @@ import {
   Save,
   ArrowLeft,
 } from "lucide-react";
-import { ExcelCellMeta, ExcelCellValue, ExcelWorkbookContent } from "../types/excel";
+import {
+  ExcelCellMeta,
+  ExcelCellValue,
+  ExcelWorkbookContent,
+} from "../types/excel";
 import { useRouter } from "next/navigation";
 
 type ExcelEditorProps = {
@@ -206,6 +210,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const router = useRouter();
   const hotRef = useRef<HotTableRef | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const formulaInputRef = useRef<HTMLInputElement | null>(null);
   const selectionRef = useRef<SelectionBounds | null>({
     fromRow: 0,
     fromCol: 0,
@@ -262,6 +267,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         hyperformula: HyperFormula,
         licenseKey: "gpl-v3",
       },
+      sheetId: 0,
       sheetName,
     }),
     [sheetName],
@@ -452,18 +458,28 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
   const handleAfterChange = useCallback(
     (_changes: unknown, source: string) => {
+      const hot = hotRef.current?.hotInstance ?? null;
+
+      if (hot) {
+        setTableData(hot.getSourceData() as Array<Array<ExcelCellValue>>);
+      }
+
       if (
         source === "loadData" ||
         source === "UndoRedo.undo" ||
         source === "UndoRedo.redo"
       ) {
-        updateSelectedState(hotRef.current?.hotInstance ?? null);
+        updateSelectedState(hot);
         return;
       }
-      updateSelectedState(hotRef.current?.hotInstance ?? null);
+      updateSelectedState(hot);
     },
     [updateSelectedState],
   );
+
+  const handleAfterFormulasValuesUpdate = useCallback(() => {
+    updateSelectedState(hotRef.current?.hotInstance ?? null);
+  }, [updateSelectedState]);
 
   const handleAfterCreateOrRemove = useCallback(() => {
     const hot = hotRef.current?.hotInstance ?? null;
@@ -519,7 +535,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     return cellProperties;
   }, []);
 
-  const captureSelection = (hot: Handsontable.Core | null) => {
+  const captureSelection = useCallback((hot: Handsontable.Core | null) => {
     if (!hot) return null;
 
     const range = hot.getSelectedRangeLast();
@@ -539,7 +555,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
     selectionRef.current = bounds;
     return bounds;
-  };
+  }, []);
 
   const applyToSelection = (updater: (row: number, col: number) => void) => {
     const hot = hotRef.current?.hotInstance;
@@ -582,7 +598,9 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
     applyToSelection((row, col) => {
       hot.setCellMeta(row, col, key, shouldEnable);
-      updateStoredCellMeta(row, col, { [key]: shouldEnable } as Partial<StyleCellMeta>);
+      updateStoredCellMeta(row, col, {
+        [key]: shouldEnable,
+      } as Partial<StyleCellMeta>);
     });
   };
 
@@ -608,7 +626,9 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const setColor = (key: "textColor" | "backgroundColor", value: string) => {
     applyToSelection((row, col) => {
       hotRef.current?.hotInstance?.setCellMeta(row, col, key, value);
-      updateStoredCellMeta(row, col, { [key]: value } as Partial<StyleCellMeta>);
+      updateStoredCellMeta(row, col, {
+        [key]: value,
+      } as Partial<StyleCellMeta>);
     });
   };
 
@@ -653,9 +673,12 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     mergePlugin.mergeSelection(range);
   };
 
-  const commitFormula = () => {
+  const commitFormula = useCallback(() => {
+    console.log("hello");
     const hot = hotRef.current?.hotInstance;
     if (!hot) return;
+
+    console.log(hot);
 
     const bounds = captureSelection(hot);
     if (!bounds) return;
@@ -677,8 +700,27 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
           })
         | null
     )?.engine?.rebuildAndRecalculate?.();
+    setTableData(hot.getSourceData() as Array<Array<ExcelCellValue>>);
+    hot.render();
     updateSelectedState(hot);
-  };
+  }, [captureSelection, formulaInput, updateSelectedState]);
+
+  useEffect(() => {
+    const input = formulaInputRef.current;
+    if (!input) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Enter") return;
+
+      event.preventDefault();
+      commitFormula();
+    };
+
+    input.addEventListener("keydown", handleKeyDown);
+    return () => {
+      input.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [commitFormula]);
 
   const undo = () =>
     (
@@ -744,18 +786,19 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       }))
       .filter(isCustomMetaDefined);
 
-    const persistedCellMeta = Array.from(cellStyleMetaRef.current.entries()).map(
-      ([key, meta]) => {
-        const [row, col] = key.split(":").map(Number);
-        return {
-          row,
-          col,
-          ...meta,
-        };
-      },
-    );
+    const persistedCellMeta = Array.from(
+      cellStyleMetaRef.current.entries(),
+    ).map(([key, meta]) => {
+      const [row, col] = key.split(":").map(Number);
+      return {
+        row,
+        col,
+        ...meta,
+      };
+    });
 
-    const nextCellMeta = persistedCellMeta.length > 0 ? persistedCellMeta : cellMeta;
+    const nextCellMeta =
+      persistedCellMeta.length > 0 ? persistedCellMeta : cellMeta;
 
     try {
       await saveContent(workbookId, {
@@ -973,18 +1016,25 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
             </div>
 
             <div className="grid gap-3 md:grid-cols-[1.3fr_0.7fr_0.7fr_0.7fr]">
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+              <form
+                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  commitFormula();
+                }}
+              >
                 <Sigma size={16} className="text-[#8fb4ff]" />
                 <input
+                  ref={formulaInputRef}
                   value={formulaInput}
                   onChange={(e) => setFormulaInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") commitFormula();
-                  }}
                   placeholder="Type a value or a formula, for example =SUM(B1:C1)"
                   className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/35"
                 />
-              </label>
+                <button type="submit" className="sr-only" aria-hidden="true">
+                  Apply formula
+                </button>
+              </form>
 
               <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
                 <Type size={16} className="text-[#8fb4ff]" />
@@ -1053,6 +1103,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                   afterInit={handleAfterInit}
                   afterSelectionEnd={handleAfterSelectionEnd}
                   afterChange={handleAfterChange}
+                  afterFormulasValuesUpdate={handleAfterFormulasValuesUpdate}
                   afterCreateRow={handleAfterCreateOrRemove}
                   afterCreateCol={handleAfterCreateOrRemove}
                   afterRemoveRow={handleAfterCreateOrRemove}

@@ -18,13 +18,11 @@ import {
   Undo2,
   Redo2,
   Trash2,
-  Sigma,
   AlignLeft,
   AlignCenter,
   AlignRight,
   AlignJustify,
   Rows3,
-  Merge,
   PaintBucket,
   Type,
   Eraser,
@@ -33,7 +31,11 @@ import {
   Save,
   ArrowLeft,
 } from "lucide-react";
-import { ExcelCellMeta, ExcelCellValue, ExcelWorkbookContent } from "../types/excel";
+import {
+  ExcelCellMeta,
+  ExcelCellValue,
+  ExcelWorkbookContent,
+} from "../types/excel";
 import { useRouter } from "next/navigation";
 
 type ExcelEditorProps = {
@@ -55,8 +57,10 @@ type StyleCellMeta = {
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
-  textAlign?: AlignMode;
-  verticalAlign?: VerticalMode;
+  horizontalAlignment?: AlignMode;
+  verticalAlignment?: VerticalMode;
+  wrapText?: boolean;
+  textRotation?: number;
   textColor?: string;
   backgroundColor?: string;
   fontSize?: number;
@@ -137,6 +141,28 @@ function formatAddress(row: number, col: number) {
   return `${toColumnLabel(col)}${row + 1}`;
 }
 
+function normalizeFormulaValue(value: unknown): ExcelCellValue {
+  if (value == null) return "";
+
+  if (typeof value === "object") {
+    if (value && "value" in value) {
+      return normalizeFormulaValue((value as { value: unknown }).value);
+    }
+
+    return String(value);
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  return String(value);
+}
+
 function getSelectedCells(bounds: SelectionBounds | null) {
   if (!bounds) return [];
 
@@ -153,9 +179,6 @@ function getSelectedCells(bounds: SelectionBounds | null) {
 
 function spreadsheetRenderer(...args: Parameters<typeof TextRenderer>) {
   const [instance, td, row, col, prop, value, cellProperties] = args;
-
-  TextRenderer(instance, td, row, col, prop, value, cellProperties);
-
   const meta = cellProperties as Handsontable.CellProperties & {
     bold?: boolean;
     italic?: boolean;
@@ -163,10 +186,23 @@ function spreadsheetRenderer(...args: Parameters<typeof TextRenderer>) {
     textColor?: string;
     backgroundColor?: string;
     fontSize?: number;
-    textAlign?: AlignMode;
-    verticalAlign?: VerticalMode;
+    horizontalAlignment?: AlignMode;
+    verticalAlignment?: VerticalMode;
+    wrapText?: boolean;
+    textRotation?: number;
     fontFamily?: string;
+    formulaDisplayValue?: ExcelCellValue;
   };
+
+  TextRenderer(
+    instance,
+    td,
+    row,
+    col,
+    prop,
+    meta.formulaDisplayValue ?? value,
+    cellProperties,
+  );
 
   td.style.fontWeight = meta.bold ? "700" : "400";
   td.style.fontStyle = meta.italic ? "italic" : "normal";
@@ -174,8 +210,8 @@ function spreadsheetRenderer(...args: Parameters<typeof TextRenderer>) {
   td.style.color = meta.textColor ?? "";
   td.style.backgroundColor = meta.backgroundColor ?? "";
   td.style.fontSize = `${meta.fontSize ?? DEFAULT_FONT_SIZE}px`;
-  td.style.textAlign = meta.textAlign ?? "left";
-  td.style.verticalAlign = meta.verticalAlign ?? "middle";
+  td.style.textAlign = meta.horizontalAlignment ?? "left";
+  td.style.verticalAlign = meta.verticalAlignment ?? "middle";
   td.style.fontFamily = meta.fontFamily ?? 'Inter, "Segoe UI", sans-serif';
   td.style.whiteSpace = "pre-wrap";
 }
@@ -184,8 +220,10 @@ const FORMATTING_KEYS = [
   "bold",
   "italic",
   "underline",
-  "textAlign",
-  "verticalAlign",
+  "horizontalAlignment",
+  "verticalAlignment",
+  "wrapText",
+  "textRotation",
   "textColor",
   "backgroundColor",
   "fontSize",
@@ -206,6 +244,8 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const router = useRouter();
   const hotRef = useRef<HotTableRef | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
+  const formulaInputRef = useRef<HTMLInputElement | null>(null);
+  const formulaDisplayCacheRef = useRef<Map<string, ExcelCellValue>>(new Map());
   const selectionRef = useRef<SelectionBounds | null>({
     fromRow: 0,
     fromCol: 0,
@@ -222,8 +262,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     bold?: boolean;
     italic?: boolean;
     underline?: boolean;
-    textAlign?: AlignMode;
-    verticalAlign?: VerticalMode;
+    horizontalAlignment?: AlignMode;
+    verticalAlignment?: VerticalMode;
+    wrapText?: boolean;
+    textRotation?: number;
     textColor?: string;
     backgroundColor?: string;
     fontSize?: number;
@@ -262,6 +304,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         hyperformula: HyperFormula,
         licenseKey: "gpl-v3",
       },
+      sheetId: 0,
       sheetName,
     }),
     [sheetName],
@@ -298,18 +341,25 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     if (row < 0 || col < 0) return;
 
     const rawValue = hot.getSourceDataAtCell(row, col);
-    const renderedValue = hot.getDataAtCell(row, col);
     const meta = hot.getCellMeta(row, col) as typeof selectedMeta;
     const nextAddress = formatAddress(row, col);
     const nextFormulaInput = rawValue == null ? "" : String(rawValue);
+    const cachedValue = formulaDisplayCacheRef.current.get(nextAddress);
+    const renderedValue = hot.getDataAtCell(row, col);
     const nextSelectedValue =
-      renderedValue == null ? "" : String(renderedValue);
+      cachedValue == null
+        ? renderedValue == null
+          ? ""
+          : String(renderedValue)
+        : String(cachedValue);
     const nextSelectedMeta = {
       bold: meta.bold,
       italic: meta.italic,
       underline: meta.underline,
-      textAlign: meta.textAlign,
-      verticalAlign: meta.verticalAlign,
+      horizontalAlignment: meta.horizontalAlignment,
+      verticalAlignment: meta.verticalAlignment,
+      wrapText: meta.wrapText,
+      textRotation: meta.textRotation,
       textColor: meta.textColor,
       backgroundColor: meta.backgroundColor,
       fontSize: meta.fontSize,
@@ -338,8 +388,11 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         currentValue.bold === nextSelectedMeta.bold &&
         currentValue.italic === nextSelectedMeta.italic &&
         currentValue.underline === nextSelectedMeta.underline &&
-        currentValue.textAlign === nextSelectedMeta.textAlign &&
-        currentValue.verticalAlign === nextSelectedMeta.verticalAlign &&
+        currentValue.horizontalAlignment ===
+          nextSelectedMeta.horizontalAlignment &&
+        currentValue.verticalAlignment === nextSelectedMeta.verticalAlignment &&
+        currentValue.wrapText === nextSelectedMeta.wrapText &&
+        currentValue.textRotation === nextSelectedMeta.textRotation &&
         currentValue.textColor === nextSelectedMeta.textColor &&
         currentValue.backgroundColor === nextSelectedMeta.backgroundColor &&
         currentValue.fontSize === nextSelectedMeta.fontSize;
@@ -363,6 +416,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       const nextDimensions = getWorkbookDimensions(nextData);
 
       setTableData(nextData);
+      rebuildFormulaDisplayCache(nextData);
       setSheetDimensions((current) => ({
         rows: Math.max(current.rows, nextDimensions.rows),
         cols: Math.max(current.cols, nextDimensions.cols),
@@ -388,8 +442,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
             bold,
             italic,
             underline,
-            textAlign,
-            verticalAlign,
+            horizontalAlignment,
+            verticalAlignment,
+            wrapText,
+            textRotation,
             textColor,
             backgroundColor,
             fontSize,
@@ -400,10 +456,19 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
           if (italic !== undefined) hot.setCellMeta(row, col, "italic", italic);
           if (underline !== undefined)
             hot.setCellMeta(row, col, "underline", underline);
-          if (textAlign !== undefined)
-            hot.setCellMeta(row, col, "textAlign", textAlign);
-          if (verticalAlign !== undefined)
-            hot.setCellMeta(row, col, "verticalAlign", verticalAlign);
+          if (horizontalAlignment !== undefined)
+            hot.setCellMeta(
+              row,
+              col,
+              "horizontalAlignment",
+              horizontalAlignment,
+            );
+          if (verticalAlignment !== undefined)
+            hot.setCellMeta(row, col, "verticalAlignment", verticalAlignment);
+          if (wrapText !== undefined)
+            hot.setCellMeta(row, col, "wrapText", wrapText);
+          if (textRotation !== undefined)
+            hot.setCellMeta(row, col, "textRotation", textRotation);
           if (textColor !== undefined)
             hot.setCellMeta(row, col, "textColor", textColor);
           if (backgroundColor !== undefined)
@@ -417,8 +482,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
             bold,
             italic,
             underline,
-            textAlign,
-            verticalAlign,
+            horizontalAlignment,
+            verticalAlignment,
+            wrapText,
+            textRotation,
             textColor,
             backgroundColor,
             fontSize,
@@ -450,20 +517,72 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     syncSelection(hotRef.current?.hotInstance ?? null);
   }, [syncSelection]);
 
+  const rebuildFormulaDisplayCache = useCallback(
+    (data: Array<Array<ExcelCellValue>>) => {
+      try {
+        const engine = HyperFormula.buildFromSheets(
+          {
+            [sheetName]: data,
+          },
+          {
+            licenseKey: "gpl-v3",
+          },
+        );
+
+        const sheetId = engine.getSheetId(sheetName);
+        const cache = new Map<string, ExcelCellValue>();
+
+        if (sheetId != null) {
+          for (let row = 0; row < data.length; row += 1) {
+            const currentRow = data[row] ?? [];
+
+            for (let col = 0; col < currentRow.length; col += 1) {
+              const result = engine.getCellValue({
+                sheet: sheetId,
+                row,
+                col,
+              });
+              cache.set(
+                getCellMetaKey(row, col),
+                normalizeFormulaValue(result),
+              );
+            }
+          }
+        }
+
+        formulaDisplayCacheRef.current = cache;
+      } catch {
+        formulaDisplayCacheRef.current = new Map();
+      }
+    },
+    [sheetName],
+  );
+
   const handleAfterChange = useCallback(
     (_changes: unknown, source: string) => {
+      const hot = hotRef.current?.hotInstance ?? null;
+      if (hot) {
+        rebuildFormulaDisplayCache(
+          hot.getSourceData() as Array<Array<ExcelCellValue>>,
+        );
+      }
+
       if (
         source === "loadData" ||
         source === "UndoRedo.undo" ||
         source === "UndoRedo.redo"
       ) {
-        updateSelectedState(hotRef.current?.hotInstance ?? null);
+        updateSelectedState(hot);
         return;
       }
-      updateSelectedState(hotRef.current?.hotInstance ?? null);
+      updateSelectedState(hot);
     },
-    [updateSelectedState],
+    [rebuildFormulaDisplayCache, updateSelectedState],
   );
+
+  const handleAfterFormulasValuesUpdate = useCallback(() => {
+    updateSelectedState(hotRef.current?.hotInstance ?? null);
+  }, [updateSelectedState]);
 
   const handleAfterCreateOrRemove = useCallback(() => {
     const hot = hotRef.current?.hotInstance ?? null;
@@ -481,14 +600,20 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       bold?: boolean;
       italic?: boolean;
       underline?: boolean;
-      textAlign?: AlignMode;
-      verticalAlign?: VerticalMode;
+      horizontalAlignment?: AlignMode;
+      verticalAlignment?: VerticalMode;
+      wrapText?: boolean;
+      textRotation?: number;
       textColor?: string;
       backgroundColor?: string;
       fontSize?: number;
+      formulaDisplayValue?: ExcelCellValue;
     };
 
     cellProperties.renderer = spreadsheetRenderer;
+    cellProperties.formulaDisplayValue = formulaDisplayCacheRef.current.get(
+      getCellMetaKey(row, col),
+    );
 
     const storedMeta = cellStyleMetaRef.current.get(getCellMetaKey(row, col));
     if (storedMeta) {
@@ -497,10 +622,14 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         cellProperties.italic = storedMeta.italic;
       if (storedMeta.underline !== undefined)
         cellProperties.underline = storedMeta.underline;
-      if (storedMeta.textAlign !== undefined)
-        cellProperties.textAlign = storedMeta.textAlign;
-      if (storedMeta.verticalAlign !== undefined)
-        cellProperties.verticalAlign = storedMeta.verticalAlign;
+      if (storedMeta.horizontalAlignment !== undefined)
+        cellProperties.horizontalAlignment = storedMeta.horizontalAlignment;
+      if (storedMeta.verticalAlignment !== undefined)
+        cellProperties.verticalAlignment = storedMeta.verticalAlignment;
+      if (storedMeta.wrapText !== undefined)
+        cellProperties.wrapText = storedMeta.wrapText;
+      if (storedMeta.textRotation !== undefined)
+        cellProperties.textRotation = storedMeta.textRotation;
       if (storedMeta.textColor !== undefined)
         cellProperties.textColor = storedMeta.textColor;
       if (storedMeta.backgroundColor !== undefined)
@@ -519,7 +648,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     return cellProperties;
   }, []);
 
-  const captureSelection = (hot: Handsontable.Core | null) => {
+  const captureSelection = useCallback((hot: Handsontable.Core | null) => {
     if (!hot) return null;
 
     const range = hot.getSelectedRangeLast();
@@ -539,7 +668,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
     selectionRef.current = bounds;
     return bounds;
-  };
+  }, []);
 
   const applyToSelection = (updater: (row: number, col: number) => void) => {
     const hot = hotRef.current?.hotInstance;
@@ -582,14 +711,21 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
     applyToSelection((row, col) => {
       hot.setCellMeta(row, col, key, shouldEnable);
-      updateStoredCellMeta(row, col, { [key]: shouldEnable } as Partial<StyleCellMeta>);
+      updateStoredCellMeta(row, col, {
+        [key]: shouldEnable,
+      } as Partial<StyleCellMeta>);
     });
   };
 
   const setAlign = (align: AlignMode) => {
     applyToSelection((row, col) => {
-      hotRef.current?.hotInstance?.setCellMeta(row, col, "textAlign", align);
-      updateStoredCellMeta(row, col, { textAlign: align });
+      hotRef.current?.hotInstance?.setCellMeta(
+        row,
+        col,
+        "horizontalAlignment",
+        align,
+      );
+      updateStoredCellMeta(row, col, { horizontalAlignment: align });
     });
   };
 
@@ -598,17 +734,19 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       hotRef.current?.hotInstance?.setCellMeta(
         row,
         col,
-        "verticalAlign",
+        "verticalAlignment",
         align,
       );
-      updateStoredCellMeta(row, col, { verticalAlign: align });
+      updateStoredCellMeta(row, col, { verticalAlignment: align });
     });
   };
 
   const setColor = (key: "textColor" | "backgroundColor", value: string) => {
     applyToSelection((row, col) => {
       hotRef.current?.hotInstance?.setCellMeta(row, col, key, value);
-      updateStoredCellMeta(row, col, { [key]: value } as Partial<StyleCellMeta>);
+      updateStoredCellMeta(row, col, {
+        [key]: value,
+      } as Partial<StyleCellMeta>);
     });
   };
 
@@ -628,8 +766,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         "bold",
         "italic",
         "underline",
-        "textAlign",
-        "verticalAlign",
+        "horizontalAlignment",
+        "verticalAlignment",
+        "wrapText",
+        "textRotation",
         "textColor",
         "backgroundColor",
         "fontSize",
@@ -639,46 +779,21 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     });
   };
 
-  const mergeSelection = () => {
-    const hot = hotRef.current?.hotInstance;
-    if (!hot) return;
+  useEffect(() => {
+    const input = formulaInputRef.current;
+    if (!input) return;
 
-    const range = hot.getSelectedRangeLast();
-    if (!range) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Enter") return;
 
-    const mergePlugin = hot.getPlugin(
-      "mergeCells",
-    ) as Handsontable.plugins.MergeCells;
+      event.preventDefault();
+    };
 
-    mergePlugin.mergeSelection(range);
-  };
-
-  const commitFormula = () => {
-    const hot = hotRef.current?.hotInstance;
-    if (!hot) return;
-
-    const bounds = captureSelection(hot);
-    if (!bounds) return;
-    if (bounds.highlightRow < 0 || bounds.highlightCol < 0) return;
-
-    const nextFormula = formulaInput.trim();
-    if (!nextFormula) return;
-
-    hot.setDataAtCell(
-      bounds.highlightRow,
-      bounds.highlightCol,
-      nextFormula,
-      "edit",
-    );
-    (
-      hot.getPlugin("formulas") as
-        | (Handsontable.plugins.Formulas & {
-            engine?: { rebuildAndRecalculate?: () => void };
-          })
-        | null
-    )?.engine?.rebuildAndRecalculate?.();
-    updateSelectedState(hot);
-  };
+    input.addEventListener("keydown", handleKeyDown);
+    return () => {
+      input.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const undo = () =>
     (
@@ -735,8 +850,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         bold: meta.bold,
         italic: meta.italic,
         underline: meta.underline,
-        textAlign: meta.textAlign,
-        verticalAlign: meta.verticalAlign,
+        horizontalAlignment: meta.horizontalAlignment,
+        verticalAlignment: meta.verticalAlignment,
+        wrapText: meta.wrapText,
+        textRotation: meta.textRotation,
         textColor: meta.textColor,
         backgroundColor: meta.backgroundColor,
         fontSize: meta.fontSize,
@@ -744,18 +861,19 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       }))
       .filter(isCustomMetaDefined);
 
-    const persistedCellMeta = Array.from(cellStyleMetaRef.current.entries()).map(
-      ([key, meta]) => {
-        const [row, col] = key.split(":").map(Number);
-        return {
-          row,
-          col,
-          ...meta,
-        };
-      },
-    );
+    const persistedCellMeta = Array.from(
+      cellStyleMetaRef.current.entries(),
+    ).map(([key, meta]) => {
+      const [row, col] = key.split(":").map(Number);
+      return {
+        row,
+        col,
+        ...meta,
+      };
+    });
 
-    const nextCellMeta = persistedCellMeta.length > 0 ? persistedCellMeta : cellMeta;
+    const nextCellMeta =
+      persistedCellMeta.length > 0 ? persistedCellMeta : cellMeta;
 
     try {
       await saveContent(workbookId, {
@@ -915,56 +1033,52 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
               </button>
               <button
                 onClick={() => setAlign("left")}
-                className={`tool-btn ${selectedMeta.textAlign === "left" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.horizontalAlignment === "left" ? "tool-btn-active" : ""}`}
               >
                 <AlignLeft size={16} />
                 Left
               </button>
               <button
                 onClick={() => setAlign("center")}
-                className={`tool-btn ${selectedMeta.textAlign === "center" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.horizontalAlignment === "center" ? "tool-btn-active" : ""}`}
               >
                 <AlignCenter size={16} />
                 Center
               </button>
               <button
                 onClick={() => setAlign("right")}
-                className={`tool-btn ${selectedMeta.textAlign === "right" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.horizontalAlignment === "right" ? "tool-btn-active" : ""}`}
               >
                 <AlignRight size={16} />
                 Right
               </button>
               <button
                 onClick={() => setAlign("justify")}
-                className={`tool-btn ${selectedMeta.textAlign === "justify" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.horizontalAlignment === "justify" ? "tool-btn-active" : ""}`}
               >
                 <AlignJustify size={16} />
                 Justify
               </button>
               <button
                 onClick={() => setVerticalAlign("top")}
-                className={`tool-btn ${selectedMeta.verticalAlign === "top" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.verticalAlignment === "top" ? "tool-btn-active" : ""}`}
               >
                 <Rows3 size={16} />
                 Top
               </button>
               <button
                 onClick={() => setVerticalAlign("middle")}
-                className={`tool-btn ${selectedMeta.verticalAlign === "middle" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.verticalAlignment === "middle" ? "tool-btn-active" : ""}`}
               >
                 <Rows3 size={16} />
                 Middle
               </button>
               <button
                 onClick={() => setVerticalAlign("bottom")}
-                className={`tool-btn ${selectedMeta.verticalAlign === "bottom" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.verticalAlignment === "bottom" ? "tool-btn-active" : ""}`}
               >
                 <Rows3 size={16} />
                 Bottom
-              </button>
-              <button onClick={() => mergeSelection()} className="tool-btn">
-                <Merge size={16} />
-                Merge
               </button>
               <button onClick={clearFormatting} className="tool-btn">
                 <Eraser size={16} />
@@ -974,19 +1088,6 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
             <div className="grid gap-3 md:grid-cols-[1.3fr_0.7fr_0.7fr_0.7fr]">
               <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <Sigma size={16} className="text-[#8fb4ff]" />
-                <input
-                  value={formulaInput}
-                  onChange={(e) => setFormulaInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") commitFormula();
-                  }}
-                  placeholder="Type a value or a formula, for example =SUM(B1:C1)"
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/35"
-                />
-              </label>
-
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
                 <Type size={16} className="text-[#8fb4ff]" />
                 <select
                   value={String(selectedMeta.fontSize ?? DEFAULT_FONT_SIZE)}
@@ -994,31 +1095,15 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                   className="w-full bg-transparent text-sm text-white outline-none"
                 >
                   {[10, 11, 12, 14, 16, 18, 20, 24, 28, 32].map((size) => (
-                    <option key={size} value={size}>
+                    <option
+                      className="border border-white/10 bg-black text-white px-4 py-3"
+                      key={size}
+                      value={size}
+                    >
                       {size}px
                     </option>
                   ))}
                 </select>
-              </label>
-
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <PaintBucket size={16} className="text-[#8fb4ff]" />
-                <input
-                  type="color"
-                  value={selectedMeta.backgroundColor ?? "#1c1c1c"}
-                  onChange={(e) => setColor("backgroundColor", e.target.value)}
-                  className="h-8 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent"
-                />
-              </label>
-
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <Type size={16} className="text-[#8fb4ff]" />
-                <input
-                  type="color"
-                  value={selectedMeta.textColor ?? "#eeeeee"}
-                  onChange={(e) => setColor("textColor", e.target.value)}
-                  className="h-8 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent"
-                />
               </label>
             </div>
           </div>
@@ -1053,6 +1138,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                   afterInit={handleAfterInit}
                   afterSelectionEnd={handleAfterSelectionEnd}
                   afterChange={handleAfterChange}
+                  afterFormulasValuesUpdate={handleAfterFormulasValuesUpdate}
                   afterCreateRow={handleAfterCreateOrRemove}
                   afterCreateCol={handleAfterCreateOrRemove}
                   afterRemoveRow={handleAfterCreateOrRemove}

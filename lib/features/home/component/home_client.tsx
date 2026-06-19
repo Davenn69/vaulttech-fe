@@ -29,6 +29,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { folderStorage } from "@/lib/cores/utils/local";
 
 function getActiveNav(pathname: string) {
   switch (pathname) {
@@ -77,7 +78,7 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
 
   const upload = useMultiFileUpload(
     "/file/uploadFile",
-    folderId,
+    folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
     notifyUploadSuccess,
   );
   const { renameFile, fetchFiles, createWordFile, createExcelFile } =
@@ -88,6 +89,7 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   const [activeNav, setActiveNav] = useState<string>(() =>
     getActiveNav(pathname),
   );
+  const [isSidebarVisible, setIsSidebarVisible] = useState(true);
   const [isUploadPanelOpen, setIsUploadPanelOpen] = useState(false);
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const hasActiveUpload = upload.files.some(
@@ -172,20 +174,31 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex relative">
       <div className="flex h-screen w-full overflow-hidden bg-[#111213] text-[#e8e9ea]">
-        <Sidebar
-          navItems={navItems}
-          activeItem={activeNav}
-          onNavigate={setActiveNav}
-          onUploadFiles={upload.addAndUploadFiles}
-          onCreateFolder={() => setShowCreateFolder(true)}
-          onCreateWordFile={() => createWordFile(folderId)}
-          onCreateExcelFile={() => createExcelFile(folderId)}
-        />
+        {isSidebarVisible && (
+          <Sidebar
+            navItems={navItems}
+            activeItem={activeNav}
+            onNavigate={setActiveNav}
+            onUploadFiles={upload.addAndUploadFiles}
+            onCreateFolder={() => setShowCreateFolder(true)}
+            onCreateWordFile={() =>
+              createWordFile(
+                folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
+              )
+            }
+            onCreateExcelFile={() =>
+              createExcelFile(
+                folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
+              )
+            }
+          />
+        )}
         <div className="flex flex-col flex-1 overflow-hidden">
           <Topbar
             onUploadToggle={() =>
               setIsUploadPanelOpen((prevState) => !prevState)
             }
+            onToggleSidebar={() => setIsSidebarVisible((prev) => !prev)}
           />
           {children}
         </div>
@@ -203,7 +216,10 @@ function HomeLayoutContent({ children }: { children: React.ReactNode }) {
         open={showCreateFolder}
         onClose={() => setShowCreateFolder(false)}
         onSubmit={async function (folderName: string): Promise<void> {
-          await uploadFolder(folderId, folderName);
+          await uploadFolder(
+            folderId ? folderId : (folderStorage.getParentFolderId() ?? ""),
+            folderName,
+          );
           setShowCreateFolder(false);
         }}
       />

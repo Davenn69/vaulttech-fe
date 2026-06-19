@@ -1,13 +1,18 @@
 export type ExcelCellValue = string | number | boolean | null;
 
+export type HorizontalAlignment = "left" | "center" | "right" | "justify";
+export type VerticalAlignment = "top" | "middle" | "bottom";
+
 export type ExcelCellMeta = {
   row: number;
   col: number;
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
-  textAlign?: "left" | "center" | "right" | "justify";
-  verticalAlign?: "top" | "middle" | "bottom";
+  horizontalAlignment?: HorizontalAlignment;
+  verticalAlignment?: VerticalAlignment;
+  wrapText?: boolean;
+  textRotation?: number;
   textColor?: string;
   backgroundColor?: string;
   fontSize?: number;
@@ -34,8 +39,12 @@ export type ExcelApiCell = {
   backgroundColor?: string;
   fontSize?: number;
   fontFamily?: string;
-  textAlign?: "left" | "center" | "right" | "justify";
-  verticalAlign?: "top" | "middle" | "bottom";
+  horizontalAlignment?: HorizontalAlignment;
+  verticalAlignment?: VerticalAlignment;
+  wrapText?: boolean;
+  textRotation?: number;
+  textAlign?: HorizontalAlignment;
+  verticalAlign?: VerticalAlignment;
 };
 
 export type ExcelApiRow = Array<ExcelApiCell | null>;
@@ -139,8 +148,14 @@ function normalizeApiRows(workbook: ExcelApiPayload) {
       if (cell.backgroundColor) meta.backgroundColor = cell.backgroundColor;
       if (cell.fontSize) meta.fontSize = cell.fontSize;
       if (cell.fontFamily) meta.fontFamily = cell.fontFamily;
-      if (cell.textAlign) meta.textAlign = cell.textAlign;
-      if (cell.verticalAlign) meta.verticalAlign = cell.verticalAlign;
+      if (cell.horizontalAlignment ?? cell.textAlign) {
+        meta.horizontalAlignment = cell.horizontalAlignment ?? cell.textAlign;
+      }
+      if (cell.verticalAlignment ?? cell.verticalAlign) {
+        meta.verticalAlignment = cell.verticalAlignment ?? cell.verticalAlign;
+      }
+      if (cell.wrapText !== undefined) meta.wrapText = cell.wrapText;
+      if (cell.textRotation !== undefined) meta.textRotation = cell.textRotation;
       cellMeta.push(meta);
     });
   });
@@ -169,7 +184,29 @@ function normalizeWorkbookData(workbook: ExcelWorkbookContent) {
 
   return {
     data,
-    cellMeta: workbook.cellMeta,
+    cellMeta: workbook.cellMeta?.map((meta) => {
+      const nextMeta: ExcelCellMeta = { ...meta };
+      const legacyMeta = meta as ExcelCellMeta & {
+        textAlign?: HorizontalAlignment;
+        verticalAlign?: VerticalAlignment;
+      };
+
+      if (
+        nextMeta.horizontalAlignment === undefined &&
+        legacyMeta.textAlign !== undefined
+      ) {
+        nextMeta.horizontalAlignment = legacyMeta.textAlign;
+      }
+
+      if (
+        nextMeta.verticalAlignment === undefined &&
+        legacyMeta.verticalAlign !== undefined
+      ) {
+        nextMeta.verticalAlignment = legacyMeta.verticalAlign;
+      }
+
+      return nextMeta;
+    }),
   };
 }
 

@@ -335,35 +335,8 @@ export default function WordEditor({ id }: { id: string }) {
     editor?.chain().focus().toggleOrderedList().run();
   };
 
-  const toggleBlockquote = () => {
-    editor?.chain().focus().toggleBlockquote().run();
-  };
-
   const toggleCodeBlock = () => {
     editor?.chain().focus().toggleCodeBlock().run();
-  };
-
-  const toggleLink = () => {
-    if (!editor) return;
-
-    const currentUrl = editor.getAttributes("link").href as string | undefined;
-    const nextUrl = window.prompt("Enter the link URL", currentUrl ?? "");
-
-    if (nextUrl === null) return;
-
-    const trimmed = nextUrl.trim();
-
-    if (!trimmed) {
-      editor.chain().focus().extendMarkRange("link").unsetLink().run();
-      return;
-    }
-
-    editor
-      .chain()
-      .focus()
-      .extendMarkRange("link")
-      .setLink({ href: trimmed })
-      .run();
   };
 
   return (
@@ -534,22 +507,10 @@ export default function WordEditor({ id }: { id: string }) {
                 label="Numbered"
               />
               <ToolbarButton
-                active={getBlockState("blockquote")}
-                onClick={toggleBlockquote}
-                icon={Quote}
-                label="Quote"
-              />
-              <ToolbarButton
                 active={getBlockState("codeBlock")}
                 onClick={toggleCodeBlock}
                 icon={Code}
                 label="Code block"
-              />
-              <ToolbarButton
-                active={getInlineMarkState("link")}
-                onClick={toggleLink}
-                icon={Link2}
-                label="Link"
               />
 
               <div className="mx-1 h-8 w-px bg-[#222426]" />

@@ -24,7 +24,6 @@ import {
   AlignRight,
   AlignJustify,
   Rows3,
-  Merge,
   PaintBucket,
   Type,
   Eraser,
@@ -141,6 +140,28 @@ function formatAddress(row: number, col: number) {
   return `${toColumnLabel(col)}${row + 1}`;
 }
 
+function normalizeFormulaValue(value: unknown): ExcelCellValue {
+  if (value == null) return "";
+
+  if (typeof value === "object") {
+    if (value && "value" in value) {
+      return normalizeFormulaValue((value as { value: unknown }).value);
+    }
+
+    return String(value);
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  return String(value);
+}
+
 function getSelectedCells(bounds: SelectionBounds | null) {
   if (!bounds) return [];
 
@@ -157,9 +178,6 @@ function getSelectedCells(bounds: SelectionBounds | null) {
 
 function spreadsheetRenderer(...args: Parameters<typeof TextRenderer>) {
   const [instance, td, row, col, prop, value, cellProperties] = args;
-
-  TextRenderer(instance, td, row, col, prop, value, cellProperties);
-
   const meta = cellProperties as Handsontable.CellProperties & {
     bold?: boolean;
     italic?: boolean;
@@ -170,7 +188,18 @@ function spreadsheetRenderer(...args: Parameters<typeof TextRenderer>) {
     textAlign?: AlignMode;
     verticalAlign?: VerticalMode;
     fontFamily?: string;
+    formulaDisplayValue?: ExcelCellValue;
   };
+
+  TextRenderer(
+    instance,
+    td,
+    row,
+    col,
+    prop,
+    meta.formulaDisplayValue ?? value,
+    cellProperties,
+  );
 
   td.style.fontWeight = meta.bold ? "700" : "400";
   td.style.fontStyle = meta.italic ? "italic" : "normal";
@@ -211,6 +240,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
   const hotRef = useRef<HotTableRef | null>(null);
   const nameInputRef = useRef<HTMLInputElement | null>(null);
   const formulaInputRef = useRef<HTMLInputElement | null>(null);
+  const formulaDisplayCacheRef = useRef<Map<string, ExcelCellValue>>(new Map());
   const selectionRef = useRef<SelectionBounds | null>({
     fromRow: 0,
     fromCol: 0,
@@ -304,12 +334,17 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     if (row < 0 || col < 0) return;
 
     const rawValue = hot.getSourceDataAtCell(row, col);
-    const renderedValue = hot.getDataAtCell(row, col);
     const meta = hot.getCellMeta(row, col) as typeof selectedMeta;
     const nextAddress = formatAddress(row, col);
     const nextFormulaInput = rawValue == null ? "" : String(rawValue);
+    const cachedValue = formulaDisplayCacheRef.current.get(nextAddress);
+    const renderedValue = hot.getDataAtCell(row, col);
     const nextSelectedValue =
-      renderedValue == null ? "" : String(renderedValue);
+      cachedValue == null
+        ? renderedValue == null
+          ? ""
+          : String(renderedValue)
+        : String(cachedValue);
     const nextSelectedMeta = {
       bold: meta.bold,
       italic: meta.italic,
@@ -369,6 +404,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       const nextDimensions = getWorkbookDimensions(nextData);
 
       setTableData(nextData);
+      rebuildFormulaDisplayCache(nextData);
       setSheetDimensions((current) => ({
         rows: Math.max(current.rows, nextDimensions.rows),
         cols: Math.max(current.cols, nextDimensions.cols),
@@ -456,12 +492,54 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     syncSelection(hotRef.current?.hotInstance ?? null);
   }, [syncSelection]);
 
+  const rebuildFormulaDisplayCache = useCallback(
+    (data: Array<Array<ExcelCellValue>>) => {
+      try {
+        const engine = HyperFormula.buildFromSheets(
+          {
+            [sheetName]: data,
+          },
+          {
+            licenseKey: "gpl-v3",
+          },
+        );
+
+        const sheetId = engine.getSheetId(sheetName);
+        const cache = new Map<string, ExcelCellValue>();
+
+        if (sheetId != null) {
+          for (let row = 0; row < data.length; row += 1) {
+            const currentRow = data[row] ?? [];
+
+            for (let col = 0; col < currentRow.length; col += 1) {
+              const result = engine.getCellValue({
+                sheet: sheetId,
+                row,
+                col,
+              });
+              cache.set(
+                getCellMetaKey(row, col),
+                normalizeFormulaValue(result),
+              );
+            }
+          }
+        }
+
+        formulaDisplayCacheRef.current = cache;
+      } catch {
+        formulaDisplayCacheRef.current = new Map();
+      }
+    },
+    [sheetName],
+  );
+
   const handleAfterChange = useCallback(
     (_changes: unknown, source: string) => {
       const hot = hotRef.current?.hotInstance ?? null;
-
       if (hot) {
-        setTableData(hot.getSourceData() as Array<Array<ExcelCellValue>>);
+        rebuildFormulaDisplayCache(
+          hot.getSourceData() as Array<Array<ExcelCellValue>>,
+        );
       }
 
       if (
@@ -474,7 +552,7 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       }
       updateSelectedState(hot);
     },
-    [updateSelectedState],
+    [rebuildFormulaDisplayCache, updateSelectedState],
   );
 
   const handleAfterFormulasValuesUpdate = useCallback(() => {
@@ -502,9 +580,13 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       textColor?: string;
       backgroundColor?: string;
       fontSize?: number;
+      formulaDisplayValue?: ExcelCellValue;
     };
 
     cellProperties.renderer = spreadsheetRenderer;
+    cellProperties.formulaDisplayValue = formulaDisplayCacheRef.current.get(
+      getCellMetaKey(row, col),
+    );
 
     const storedMeta = cellStyleMetaRef.current.get(getCellMetaKey(row, col));
     if (storedMeta) {
@@ -659,52 +741,6 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     });
   };
 
-  const mergeSelection = () => {
-    const hot = hotRef.current?.hotInstance;
-    if (!hot) return;
-
-    const range = hot.getSelectedRangeLast();
-    if (!range) return;
-
-    const mergePlugin = hot.getPlugin(
-      "mergeCells",
-    ) as Handsontable.plugins.MergeCells;
-
-    mergePlugin.mergeSelection(range);
-  };
-
-  const commitFormula = useCallback(() => {
-    console.log("hello");
-    const hot = hotRef.current?.hotInstance;
-    if (!hot) return;
-
-    console.log(hot);
-
-    const bounds = captureSelection(hot);
-    if (!bounds) return;
-    if (bounds.highlightRow < 0 || bounds.highlightCol < 0) return;
-
-    const nextFormula = formulaInput.trim();
-    if (!nextFormula) return;
-
-    hot.setDataAtCell(
-      bounds.highlightRow,
-      bounds.highlightCol,
-      nextFormula,
-      "edit",
-    );
-    (
-      hot.getPlugin("formulas") as
-        | (Handsontable.plugins.Formulas & {
-            engine?: { rebuildAndRecalculate?: () => void };
-          })
-        | null
-    )?.engine?.rebuildAndRecalculate?.();
-    setTableData(hot.getSourceData() as Array<Array<ExcelCellValue>>);
-    hot.render();
-    updateSelectedState(hot);
-  }, [captureSelection, formulaInput, updateSelectedState]);
-
   useEffect(() => {
     const input = formulaInputRef.current;
     if (!input) return;
@@ -713,14 +749,13 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       if (event.key !== "Enter") return;
 
       event.preventDefault();
-      commitFormula();
     };
 
     input.addEventListener("keydown", handleKeyDown);
     return () => {
       input.removeEventListener("keydown", handleKeyDown);
     };
-  }, [commitFormula]);
+  }, []);
 
   const undo = () =>
     (
@@ -1005,10 +1040,6 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                 <Rows3 size={16} />
                 Bottom
               </button>
-              <button onClick={() => mergeSelection()} className="tool-btn">
-                <Merge size={16} />
-                Merge
-              </button>
               <button onClick={clearFormatting} className="tool-btn">
                 <Eraser size={16} />
                 Clear style
@@ -1016,26 +1047,6 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
             </div>
 
             <div className="grid gap-3 md:grid-cols-[1.3fr_0.7fr_0.7fr_0.7fr]">
-              <form
-                className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  commitFormula();
-                }}
-              >
-                <Sigma size={16} className="text-[#8fb4ff]" />
-                <input
-                  ref={formulaInputRef}
-                  value={formulaInput}
-                  onChange={(e) => setFormulaInput(e.target.value)}
-                  placeholder="Type a value or a formula, for example =SUM(B1:C1)"
-                  className="w-full bg-transparent text-sm text-white outline-none placeholder:text-white/35"
-                />
-                <button type="submit" className="sr-only" aria-hidden="true">
-                  Apply formula
-                </button>
-              </form>
-
               <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
                 <Type size={16} className="text-[#8fb4ff]" />
                 <select

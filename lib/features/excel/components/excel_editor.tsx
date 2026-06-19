@@ -57,8 +57,10 @@ type StyleCellMeta = {
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
-  textAlign?: AlignMode;
-  verticalAlign?: VerticalMode;
+  horizontalAlignment?: AlignMode;
+  verticalAlignment?: VerticalMode;
+  wrapText?: boolean;
+  textRotation?: number;
   textColor?: string;
   backgroundColor?: string;
   fontSize?: number;
@@ -184,8 +186,10 @@ function spreadsheetRenderer(...args: Parameters<typeof TextRenderer>) {
     textColor?: string;
     backgroundColor?: string;
     fontSize?: number;
-    textAlign?: AlignMode;
-    verticalAlign?: VerticalMode;
+    horizontalAlignment?: AlignMode;
+    verticalAlignment?: VerticalMode;
+    wrapText?: boolean;
+    textRotation?: number;
     fontFamily?: string;
     formulaDisplayValue?: ExcelCellValue;
   };
@@ -206,8 +210,8 @@ function spreadsheetRenderer(...args: Parameters<typeof TextRenderer>) {
   td.style.color = meta.textColor ?? "";
   td.style.backgroundColor = meta.backgroundColor ?? "";
   td.style.fontSize = `${meta.fontSize ?? DEFAULT_FONT_SIZE}px`;
-  td.style.textAlign = meta.textAlign ?? "left";
-  td.style.verticalAlign = meta.verticalAlign ?? "middle";
+  td.style.textAlign = meta.horizontalAlignment ?? "left";
+  td.style.verticalAlign = meta.verticalAlignment ?? "middle";
   td.style.fontFamily = meta.fontFamily ?? 'Inter, "Segoe UI", sans-serif';
   td.style.whiteSpace = "pre-wrap";
 }
@@ -216,8 +220,10 @@ const FORMATTING_KEYS = [
   "bold",
   "italic",
   "underline",
-  "textAlign",
-  "verticalAlign",
+  "horizontalAlignment",
+  "verticalAlignment",
+  "wrapText",
+  "textRotation",
   "textColor",
   "backgroundColor",
   "fontSize",
@@ -256,8 +262,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
     bold?: boolean;
     italic?: boolean;
     underline?: boolean;
-    textAlign?: AlignMode;
-    verticalAlign?: VerticalMode;
+    horizontalAlignment?: AlignMode;
+    verticalAlignment?: VerticalMode;
+    wrapText?: boolean;
+    textRotation?: number;
     textColor?: string;
     backgroundColor?: string;
     fontSize?: number;
@@ -348,8 +356,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       bold: meta.bold,
       italic: meta.italic,
       underline: meta.underline,
-      textAlign: meta.textAlign,
-      verticalAlign: meta.verticalAlign,
+      horizontalAlignment: meta.horizontalAlignment,
+      verticalAlignment: meta.verticalAlignment,
+      wrapText: meta.wrapText,
+      textRotation: meta.textRotation,
       textColor: meta.textColor,
       backgroundColor: meta.backgroundColor,
       fontSize: meta.fontSize,
@@ -378,8 +388,11 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         currentValue.bold === nextSelectedMeta.bold &&
         currentValue.italic === nextSelectedMeta.italic &&
         currentValue.underline === nextSelectedMeta.underline &&
-        currentValue.textAlign === nextSelectedMeta.textAlign &&
-        currentValue.verticalAlign === nextSelectedMeta.verticalAlign &&
+        currentValue.horizontalAlignment ===
+          nextSelectedMeta.horizontalAlignment &&
+        currentValue.verticalAlignment === nextSelectedMeta.verticalAlignment &&
+        currentValue.wrapText === nextSelectedMeta.wrapText &&
+        currentValue.textRotation === nextSelectedMeta.textRotation &&
         currentValue.textColor === nextSelectedMeta.textColor &&
         currentValue.backgroundColor === nextSelectedMeta.backgroundColor &&
         currentValue.fontSize === nextSelectedMeta.fontSize;
@@ -429,8 +442,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
             bold,
             italic,
             underline,
-            textAlign,
-            verticalAlign,
+            horizontalAlignment,
+            verticalAlignment,
+            wrapText,
+            textRotation,
             textColor,
             backgroundColor,
             fontSize,
@@ -441,10 +456,19 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
           if (italic !== undefined) hot.setCellMeta(row, col, "italic", italic);
           if (underline !== undefined)
             hot.setCellMeta(row, col, "underline", underline);
-          if (textAlign !== undefined)
-            hot.setCellMeta(row, col, "textAlign", textAlign);
-          if (verticalAlign !== undefined)
-            hot.setCellMeta(row, col, "verticalAlign", verticalAlign);
+          if (horizontalAlignment !== undefined)
+            hot.setCellMeta(
+              row,
+              col,
+              "horizontalAlignment",
+              horizontalAlignment,
+            );
+          if (verticalAlignment !== undefined)
+            hot.setCellMeta(row, col, "verticalAlignment", verticalAlignment);
+          if (wrapText !== undefined)
+            hot.setCellMeta(row, col, "wrapText", wrapText);
+          if (textRotation !== undefined)
+            hot.setCellMeta(row, col, "textRotation", textRotation);
           if (textColor !== undefined)
             hot.setCellMeta(row, col, "textColor", textColor);
           if (backgroundColor !== undefined)
@@ -458,8 +482,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
             bold,
             italic,
             underline,
-            textAlign,
-            verticalAlign,
+            horizontalAlignment,
+            verticalAlignment,
+            wrapText,
+            textRotation,
             textColor,
             backgroundColor,
             fontSize,
@@ -574,8 +600,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       bold?: boolean;
       italic?: boolean;
       underline?: boolean;
-      textAlign?: AlignMode;
-      verticalAlign?: VerticalMode;
+      horizontalAlignment?: AlignMode;
+      verticalAlignment?: VerticalMode;
+      wrapText?: boolean;
+      textRotation?: number;
       textColor?: string;
       backgroundColor?: string;
       fontSize?: number;
@@ -594,10 +622,14 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         cellProperties.italic = storedMeta.italic;
       if (storedMeta.underline !== undefined)
         cellProperties.underline = storedMeta.underline;
-      if (storedMeta.textAlign !== undefined)
-        cellProperties.textAlign = storedMeta.textAlign;
-      if (storedMeta.verticalAlign !== undefined)
-        cellProperties.verticalAlign = storedMeta.verticalAlign;
+      if (storedMeta.horizontalAlignment !== undefined)
+        cellProperties.horizontalAlignment = storedMeta.horizontalAlignment;
+      if (storedMeta.verticalAlignment !== undefined)
+        cellProperties.verticalAlignment = storedMeta.verticalAlignment;
+      if (storedMeta.wrapText !== undefined)
+        cellProperties.wrapText = storedMeta.wrapText;
+      if (storedMeta.textRotation !== undefined)
+        cellProperties.textRotation = storedMeta.textRotation;
       if (storedMeta.textColor !== undefined)
         cellProperties.textColor = storedMeta.textColor;
       if (storedMeta.backgroundColor !== undefined)
@@ -687,8 +719,13 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
 
   const setAlign = (align: AlignMode) => {
     applyToSelection((row, col) => {
-      hotRef.current?.hotInstance?.setCellMeta(row, col, "textAlign", align);
-      updateStoredCellMeta(row, col, { textAlign: align });
+      hotRef.current?.hotInstance?.setCellMeta(
+        row,
+        col,
+        "horizontalAlignment",
+        align,
+      );
+      updateStoredCellMeta(row, col, { horizontalAlignment: align });
     });
   };
 
@@ -697,10 +734,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
       hotRef.current?.hotInstance?.setCellMeta(
         row,
         col,
-        "verticalAlign",
+        "verticalAlignment",
         align,
       );
-      updateStoredCellMeta(row, col, { verticalAlign: align });
+      updateStoredCellMeta(row, col, { verticalAlignment: align });
     });
   };
 
@@ -729,8 +766,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         "bold",
         "italic",
         "underline",
-        "textAlign",
-        "verticalAlign",
+        "horizontalAlignment",
+        "verticalAlignment",
+        "wrapText",
+        "textRotation",
         "textColor",
         "backgroundColor",
         "fontSize",
@@ -811,8 +850,10 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
         bold: meta.bold,
         italic: meta.italic,
         underline: meta.underline,
-        textAlign: meta.textAlign,
-        verticalAlign: meta.verticalAlign,
+        horizontalAlignment: meta.horizontalAlignment,
+        verticalAlignment: meta.verticalAlignment,
+        wrapText: meta.wrapText,
+        textRotation: meta.textRotation,
         textColor: meta.textColor,
         backgroundColor: meta.backgroundColor,
         fontSize: meta.fontSize,
@@ -992,49 +1033,49 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
               </button>
               <button
                 onClick={() => setAlign("left")}
-                className={`tool-btn ${selectedMeta.textAlign === "left" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.horizontalAlignment === "left" ? "tool-btn-active" : ""}`}
               >
                 <AlignLeft size={16} />
                 Left
               </button>
               <button
                 onClick={() => setAlign("center")}
-                className={`tool-btn ${selectedMeta.textAlign === "center" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.horizontalAlignment === "center" ? "tool-btn-active" : ""}`}
               >
                 <AlignCenter size={16} />
                 Center
               </button>
               <button
                 onClick={() => setAlign("right")}
-                className={`tool-btn ${selectedMeta.textAlign === "right" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.horizontalAlignment === "right" ? "tool-btn-active" : ""}`}
               >
                 <AlignRight size={16} />
                 Right
               </button>
               <button
                 onClick={() => setAlign("justify")}
-                className={`tool-btn ${selectedMeta.textAlign === "justify" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.horizontalAlignment === "justify" ? "tool-btn-active" : ""}`}
               >
                 <AlignJustify size={16} />
                 Justify
               </button>
               <button
                 onClick={() => setVerticalAlign("top")}
-                className={`tool-btn ${selectedMeta.verticalAlign === "top" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.verticalAlignment === "top" ? "tool-btn-active" : ""}`}
               >
                 <Rows3 size={16} />
                 Top
               </button>
               <button
                 onClick={() => setVerticalAlign("middle")}
-                className={`tool-btn ${selectedMeta.verticalAlign === "middle" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.verticalAlignment === "middle" ? "tool-btn-active" : ""}`}
               >
                 <Rows3 size={16} />
                 Middle
               </button>
               <button
                 onClick={() => setVerticalAlign("bottom")}
-                className={`tool-btn ${selectedMeta.verticalAlign === "bottom" ? "tool-btn-active" : ""}`}
+                className={`tool-btn ${selectedMeta.verticalAlignment === "bottom" ? "tool-btn-active" : ""}`}
               >
                 <Rows3 size={16} />
                 Bottom
@@ -1054,31 +1095,15 @@ export default function ExcelEditor({ workbookId }: ExcelEditorProps) {
                   className="w-full bg-transparent text-sm text-white outline-none"
                 >
                   {[10, 11, 12, 14, 16, 18, 20, 24, 28, 32].map((size) => (
-                    <option key={size} value={size}>
+                    <option
+                      className="border border-white/10 bg-black text-white px-4 py-3"
+                      key={size}
+                      value={size}
+                    >
                       {size}px
                     </option>
                   ))}
                 </select>
-              </label>
-
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <PaintBucket size={16} className="text-[#8fb4ff]" />
-                <input
-                  type="color"
-                  value={selectedMeta.backgroundColor ?? "#1c1c1c"}
-                  onChange={(e) => setColor("backgroundColor", e.target.value)}
-                  className="h-8 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent"
-                />
-              </label>
-
-              <label className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-                <Type size={16} className="text-[#8fb4ff]" />
-                <input
-                  type="color"
-                  value={selectedMeta.textColor ?? "#eeeeee"}
-                  onChange={(e) => setColor("textColor", e.target.value)}
-                  className="h-8 w-full cursor-pointer rounded-lg border border-white/10 bg-transparent"
-                />
               </label>
             </div>
           </div>

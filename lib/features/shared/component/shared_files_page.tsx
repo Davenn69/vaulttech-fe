@@ -14,13 +14,8 @@ import CategorySelectMenu from "@/lib/features/category/component/category_selec
 export default function SharedFilesPage() {
   const router = useRouter();
   const { downloadFile } = useFileList();
-  const {
-    hydrated,
-    loading,
-    sharedFolders,
-    sharedFiles,
-    fetchSharedFiles,
-  } = useSharedFiles();
+  const { hydrated, loading, sharedFolders, sharedFiles, fetchSharedFiles } =
+    useSharedFiles();
   const [selectedFileForCategory, setSelectedFileForCategory] = useState<{
     id: string;
     name: string;
@@ -74,17 +69,6 @@ export default function SharedFilesPage() {
                   danger: false,
                   onTap: () => {
                     downloadFile(file.id);
-                  },
-                },
-                {
-                  label: "Set Category",
-                  danger: false,
-                  onTap: () => {
-                    setSelectedFileForCategory({
-                      id: file.id,
-                      name: file.name,
-                      categoryName: file.category?.name,
-                    });
                   },
                 },
               ]}
